@@ -82,6 +82,13 @@ enum dirk_special_op {
      * guest makes swap chains for is shown by that surface (kind 0 a
      * Wayland surface, as the GL device's SURFACE says), and is that big. */
     DIRK_OP_SURFACE,
+    /* handle: the immediate context. u32 buffer, u64 offset, the bytes as a
+     * blob: bytes a no-overwrite map wrote, sent when a draw reads them
+     * rather than at its Unmap. */
+    DIRK_OP_WRITE_RANGE,
+    /* handle: the immediate context. u32 buffer, u64 offset, the bytes as a
+     * blob: what the guest says that range holds (DIRK_VERIFY). */
+    DIRK_OP_VERIFY,
 };
 
 enum dirk_resource_kind {

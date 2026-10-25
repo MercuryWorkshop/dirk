@@ -67,6 +67,16 @@ struct dirk_resource {
      * (a no-overwrite map writes into what the last one left). */
     uint32_t sub_count;
     struct dirk_mapping *maps;
+    /* dirk_draw.c's: a dynamic vertex or index buffer whose no-overwrite
+     * maps send nothing at Unmap, their bytes going when a draw reads them
+     * (lazy); what the host holds of it (host, when host_valid); and an
+     * index buffer's bytes where no map holds them (index). */
+    int lazy, host_valid, index_valid;
+    uint32_t gen, synced_gen, writes;
+    uint8_t *host, *index;
+    struct { uint64_t lo, hi; uint32_t gen; } seen[4];
+    unsigned seen_next;
+    int pending_at;             /* 1 + its place among the pending, or 0 */
 };
 
 struct dirk_mapping {
@@ -83,6 +93,7 @@ struct dirk_proxy {
     int iface;                  /* enum dirk_iface_id */
     struct dirk_proxy *next;    /* the handle table's chain */
     struct dirk_resource *resource;
+    void *draw;                 /* dirk_draw.c's: a context's input state, a layout's slots */
 };
 
 HRESULT STDMETHODCALLTYPE dirk_g_IUnknown_QueryInterface(IUnknown *This, REFIID riid, void **out);
@@ -128,6 +139,22 @@ void dirk_unsupported(void *self, const char *method);
 extern int dirk_trace_on;
 void dirk_trace_first(const char *method);
 void dirk_trace(const char *fmt, ...);
+
+/* The stream's lock, for what shares it. */
+void dirk_lock(void);
+void dirk_unlock(void);
+
+/* dirk_draw.c: the bytes a draw reads that no-overwrite maps wrote. */
+int dirk_stats_on(void);
+void dirk_draw_created(struct dirk_proxy *p, const D3D11_SUBRESOURCE_DATA *data);
+/* At an Unmap: nonzero when nothing is to be sent now. Else what is sent
+ * is the mapping's whole size, counted. */
+int dirk_draw_unmap(void *context, struct dirk_proxy *resource, D3D11_MAP type);
+/* A resource written other than through a map. */
+void dirk_draw_written(struct dirk_proxy *resource, const D3D11_BOX *box, const void *data);
+void dirk_draw_free(struct dirk_proxy *p);
+void dirk_pending_remove(struct dirk_proxy *p);
+void dirk_draw_init(void);
 
 uint8_t *dirk_put_string(uint8_t *w, const void *s, int char_size);
 size_t dirk_wire_string_size(const void *s, int char_size);

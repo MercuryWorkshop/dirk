@@ -52,6 +52,30 @@ GUEST = {
     'ID3D11Device.CheckCounter', 'ID3D11Device.CreateCounter',
 }
 
+# Called before the record is written, outside the stream's lock, with the
+# method's own parameters: dirk_h_<Iface>_<Method> in dirk_draw.c, which keeps
+# the input assembler's state and sends the bytes a draw reads that a
+# no-overwrite map wrote.
+HOOK = {
+    'ID3D11DeviceContext.IASetVertexBuffers', 'ID3D11DeviceContext.IASetIndexBuffer',
+    'ID3D11DeviceContext.IASetInputLayout', 'ID3D11DeviceContext.IASetPrimitiveTopology',
+    'ID3D11DeviceContext.ClearState',
+    'ID3D11DeviceContext.Draw', 'ID3D11DeviceContext.DrawIndexed',
+    'ID3D11DeviceContext.DrawInstanced', 'ID3D11DeviceContext.DrawIndexedInstanced',
+    'ID3D11DeviceContext.DrawAuto', 'ID3D11DeviceContext.DrawInstancedIndirect',
+    'ID3D11DeviceContext.DrawIndexedInstancedIndirect',
+    'ID3D11DeviceContext.CopyResource', 'ID3D11DeviceContext.CopySubresourceRegion',
+    'ID3D11DeviceContext1.CopySubresourceRegion1', 'ID3D11DeviceContext.CopyStructureCount',
+    'ID3D11DeviceContext.FinishCommandList', 'ID3D11DeviceContext.ExecuteCommandList',
+    'IDXGISwapChain.Present', 'IDXGISwapChain1.Present1',
+}
+# Called once the new object's proxy exists, under the stream's lock, with
+# the proxy first: dirk_p_<Iface>_<Method>. The parameter named is the new
+# object's.
+POST = {
+    'ID3D11Device.CreateInputLayout': 'ppInputLayout',
+}
+
 # Sends what the stream holds once the call is written: the frame's end, and
 # the calls that ask the GPU to start.
 # Methods naming a window: told to the transport first (dirk_window_seen).
@@ -511,6 +535,9 @@ class Writer:
             L.append(f'    dirk_window_seen({WINDOW[key]});')
         if key in WINDOW_CHECK:
             L.append('    dirk_windows_check();')
+        args = ', '.join(['This'] + [p.name for p in m.params])
+        if key in HOOK:
+            L.append(f'    dirk_h_{m.iface}_{m.name}({args});')
         L.append('    struct dirk_proxy *self = dirk_proxy_of(This);')
         L.append(f'    {{ static int seen_; if (dirk_trace_on && !seen_) {{ seen_ = 1; dirk_trace_first("{key}"); }} }}')
         size = ' + '.join(['DIRK_REC_HEADER'] + [put_size(k, info, p.name) for p, k, info in params])
@@ -546,6 +573,8 @@ class Writer:
             elif k == 'new':
                 L.append(f'    struct dirk_proxy *new_{n} = {n} ? dirk_proxy_new(self, DIRK_IFACE_{info}) : NULL;')
                 L.append(f'    w = dirk_put_u32(w, new_{n} ? new_{n}->handle : 0);')
+                if POST.get(key) == n:
+                    L.append(f'    if (new_{n}) dirk_p_{m.iface}_{m.name}(new_{n}, {args});')
                 created.append((n, info))
             elif k == 'new_riid':
                 L.append(f'    w = dirk_put_u32(w, {n} != NULL);')
@@ -636,6 +665,11 @@ class Writer:
             if mode == 'guest':
                 bodies.append(f'{m.ret} STDMETHODCALLTYPE dirk_g_{m.iface}_{m.name}({c_params(m)});')
                 continue
+            key = f'{m.iface}.{m.name}'
+            if key in HOOK:
+                bodies.append(f'void dirk_h_{m.iface}_{m.name}({c_params(m)});')
+            if key in POST:
+                bodies.append(f'void dirk_p_{m.iface}_{m.name}(struct dirk_proxy *made, {c_params(m)});')
             bodies.extend(self.guest_method(m, mode, params))
             bodies.append('')
         L.extend(bodies)

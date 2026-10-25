@@ -30,6 +30,9 @@ static void lock(void) { pthread_mutex_lock(&stream_lock); }
 static void unlock(void) { pthread_mutex_unlock(&stream_lock); }
 #endif
 
+void dirk_lock(void) { lock(); }
+void dirk_unlock(void) { unlock(); }
+
 /* The stream: records not yet sent. */
 static struct {
     struct dirk_transport transport;
@@ -112,6 +115,7 @@ void dirk_guest_init(const struct dirk_transport *transport)
     s.transport = *transport;
     s.debug = getenv("DIRK_WIRE_DEBUG") != NULL;
     dirk_trace_on = t && *t && strcmp(t, "0");
+    dirk_draw_init();
 }
 
 void dirk_trace(const char *fmt, ...)
@@ -271,6 +275,7 @@ struct dirk_proxy *dirk_proxy_new(struct dirk_proxy *self, int iface)
 
 static void proxy_free(struct dirk_proxy *p)
 {
+    dirk_draw_free(p);
     if (p->resource) {
         for (uint32_t i = 0; i < p->resource->sub_count; i++)
             free(p->resource->maps[i].data);
@@ -692,6 +697,7 @@ static HRESULT create_resource(struct dirk_proxy *self, int kind, const void *de
     if (p && kept) {
         *kept = res;
         p->resource = kept;
+        dirk_draw_created(p, data);
     }
     w = dirk_put_u32(w, p ? p->handle : 0);
     w = dirk_put_u32(w, data ? count : ~0u);
@@ -871,6 +877,8 @@ void STDMETHODCALLTYPE dirk_g_ID3D11DeviceContext_Unmap(ID3D11DeviceContext *Thi
     m->type = 0;
     if (type == D3D11_MAP_READ)
         return;
+    if (res->kind == DIRK_RESOURCE_BUFFER && dirk_draw_unmap(This, dirk_proxy_of(resource), type))
+        return;
     uint8_t *w = dirk_begin(self, DIRK_OP_UNMAP, DIRK_REC_HEADER + 20 + 8 + m->size, 0);
     if (!w)
         return;
@@ -899,6 +907,8 @@ static void update_subresource(struct dirk_proxy *self, ID3D11Resource *resource
         d.d = box->back - box->front;
     }
     size = d.buffer ? d.w : dirk_data_size(d.format, d.w, d.h, d.d, row_pitch, depth_pitch);
+    if (d.buffer)
+        dirk_draw_written(dirk_proxy_of(resource), box, data);
     uint8_t *w = dirk_begin(self, DIRK_OP_UPDATE_SUBRESOURCE, DIRK_REC_HEADER + 48 + 8 + size, 0);
     if (!w)
         return;

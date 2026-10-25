@@ -121,6 +121,25 @@ namespace dirk {
     static_cast<IUnknown*>(object)->Release();
   }
 
+  // DIRK_VERIFY: a range a draw reads, against what the guest says it holds.
+  void Client::verify(const void* have, const void* want, uint64_t len, uint64_t offset) {
+    m_verified++;
+    m_verified_bytes += len;
+    if (std::memcmp(have, want, len)) {
+      const auto* a = static_cast<const uint8_t*>(have);
+      const auto* b = static_cast<const uint8_t*>(want);
+      uint64_t i = 0;
+      while (a[i] == b[i])
+        i++;
+      if (m_mismatched++ < 16)
+        std::fprintf(stderr, "dirk: verify: %llu bytes at %llu differ from byte %llu (0x%02x, guest 0x%02x)\n",
+                     (unsigned long long)len, (unsigned long long)offset, (unsigned long long)(offset + i), a[i], b[i]);
+    }
+    if (m_verified % 4096 == 0)
+      std::fprintf(stderr, "dirk: verify: %llu ranges (%llu MiB), %llu differ\n", (unsigned long long)m_verified,
+                   (unsigned long long)(m_verified_bytes >> 20), (unsigned long long)m_mismatched);
+  }
+
   void Client::missing(const Record&) {
     m_missing = true;
   }
@@ -485,6 +504,33 @@ namespace dirk {
         if (len < dataSize(d, row, depth))
           return true;
         self->UpdateSubresource1(res, sub, has_box ? &box : nullptr, bytes, row, depth, flags);
+        return true;
+      }
+
+      case DIRK_OP_WRITE_RANGE:
+      case DIRK_OP_VERIFY: {
+        auto* self = obj<ID3D11DeviceContext>(rec.handle);
+        auto* res = obj<ID3D11Resource>(r.u32());
+        uint64_t offset = r.u64();
+        uint64_t len;
+        const void* bytes = r.blob(&len);
+        SubDims d;
+        if (!self || !res || !bytes || !subDims(res, 0, &d) || !d.buffer || offset > d.w || len > d.w - offset) {
+          missing(rec);
+          return true;
+        }
+        D3D11_MAPPED_SUBRESOURCE m = { };
+        HRESULT hr = self->Map(res, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &m);
+        if (FAILED(hr)) {
+          failed(rec, hr);
+          return true;
+        }
+        auto* at = static_cast<uint8_t*>(m.pData) + offset;
+        if (rec.op == DIRK_OP_WRITE_RANGE)
+          std::memcpy(at, bytes, len);
+        else
+          verify(at, bytes, len, offset);
+        self->Unmap(res, 0);
         return true;
       }
 

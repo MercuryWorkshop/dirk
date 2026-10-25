@@ -28,7 +28,7 @@ CFLAGS=(-O2 -fPIC -fvisibility=hidden -fno-strict-aliasing -D_WIN32 -D_UCRT -fno
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/dirk-w64.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 objs=()
-for c in "$D/pe/d3d11_main.c" "$D/pe/guid.c" "$D/wire/dirk_guest.c" "$D/wire/gen/dirk_wire_guest.c"; do
+for c in "$D/pe/d3d11_main.c" "$D/pe/guid.c" "$D/wire/dirk_guest.c" "$D/wire/dirk_draw.c" "$D/wire/gen/dirk_wire_guest.c"; do
     o=$tmp/$(basename "$c" .c).o
     $WCC "${CFLAGS[@]}" -c -o "$o" "$c" &
     objs+=("$o")

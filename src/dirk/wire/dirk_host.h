@@ -201,6 +201,7 @@ namespace dirk {
     void release(uint32_t handle);
 
     void missing(const Record& rec);
+    void verify(const void* have, const void* want, uint64_t len, uint64_t offset);
     void failed(const Record& rec, HRESULT hr);
 
     const dirk_wire_host_ops& ops() const { return m_ops; }
@@ -217,6 +218,7 @@ namespace dirk {
     std::vector<uint8_t> m_reply;
     bool m_unknown = false;
     bool m_missing = false;
+    uint64_t m_verified = 0, m_verified_bytes = 0, m_mismatched = 0;
     bool m_removed = false;
   };
 

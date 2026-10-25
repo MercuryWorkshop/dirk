@@ -28,7 +28,7 @@ done
 wire=()
 if [ -n "${WIRE:-}" ]; then
   EMCC=${EMCC:-${EMXX%++}cc}
-  for f in "$D/src/dirk/wire/dirk_guest.c" "$D/src/dirk/wire/gen/dirk_wire_guest.c"; do
+  for f in "$D/src/dirk/wire/dirk_guest.c" "$D/src/dirk/wire/dirk_draw.c" "$D/src/dirk/wire/gen/dirk_wire_guest.c"; do
     "$EMCC" -std=gnu11 -O2 -pthread -I"$D/include/native" -I"$D/include/native/windows" \
       -I"$D/include/native/directx" -I"$D/src/dirk/wire" -I"$D/src/dirk/wire/gen" \
       -c "$f" -o "$out/$(basename "$f" .c).o"

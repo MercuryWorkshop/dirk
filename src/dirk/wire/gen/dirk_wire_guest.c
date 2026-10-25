@@ -721,9 +721,11 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIAdapter_CheckInterfaceSupport(IDXGI
     return result;
 }
 
+void dirk_h_IDXGISwapChain_Present(IDXGISwapChain *This, UINT sync_interval, UINT flags);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain_Present(IDXGISwapChain *This, UINT sync_interval, UINT flags)
 {
     dirk_windows_check();
+    dirk_h_IDXGISwapChain_Present(This, sync_interval, flags);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("IDXGISwapChain.Present"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4;
@@ -1273,9 +1275,11 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain1_GetCoreWindow(IDXGISwapC
     return E_NOTIMPL;
 }
 
+void dirk_h_IDXGISwapChain1_Present1(IDXGISwapChain1 *This, UINT SyncInterval, UINT PresentFlags, const DXGI_PRESENT_PARAMETERS * pPresentParameters);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain1_Present1(IDXGISwapChain1 *This, UINT SyncInterval, UINT PresentFlags, const DXGI_PRESENT_PARAMETERS * pPresentParameters)
 {
     dirk_windows_check();
+    dirk_h_IDXGISwapChain1_Present1(This, SyncInterval, PresentFlags, pPresentParameters);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("IDXGISwapChain1.Present1"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + (4 + dirk_size_array_DXGI_PRESENT_PARAMETERS(pPresentParameters, 1));
@@ -2755,8 +2759,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_VSSetShader(ID3D11Devic
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_DrawIndexed(ID3D11DeviceContext *This, UINT IndexCount, UINT StartIndexLocation, INT BaseVertexLocation);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawIndexed(ID3D11DeviceContext *This, UINT IndexCount, UINT StartIndexLocation, INT BaseVertexLocation)
 {
+    dirk_h_ID3D11DeviceContext_DrawIndexed(This, IndexCount, StartIndexLocation, BaseVertexLocation);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.DrawIndexed"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4;
@@ -2771,8 +2777,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawIndexed(ID3D11Devic
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_Draw(ID3D11DeviceContext *This, UINT VertexCount, UINT StartVertexLocation);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_Draw(ID3D11DeviceContext *This, UINT VertexCount, UINT StartVertexLocation)
 {
+    dirk_h_ID3D11DeviceContext_Draw(This, VertexCount, StartVertexLocation);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.Draw"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4;
@@ -2804,8 +2812,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_PSSetConstantBuffers(ID
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_IASetInputLayout(ID3D11DeviceContext *This, ID3D11InputLayout * pInputLayout);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_IASetInputLayout(ID3D11DeviceContext *This, ID3D11InputLayout * pInputLayout)
 {
+    dirk_h_ID3D11DeviceContext_IASetInputLayout(This, pInputLayout);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.IASetInputLayout"); } }
     size_t size = DIRK_REC_HEADER + 4;
@@ -2818,8 +2828,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_IASetInputLayout(ID3D11
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_IASetVertexBuffers(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer * const * ppVertexBuffers, const UINT * pStrides, const UINT * pOffsets);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_IASetVertexBuffers(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer * const * ppVertexBuffers, const UINT * pStrides, const UINT * pOffsets)
 {
+    dirk_h_ID3D11DeviceContext_IASetVertexBuffers(This, StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.IASetVertexBuffers"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + (4 + 4 * (size_t)(NumBuffers)) + (4 + 4 * (size_t)(NumBuffers)) + (4 + 4 * (size_t)(NumBuffers));
@@ -2836,8 +2848,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_IASetVertexBuffers(ID3D
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_IASetIndexBuffer(ID3D11DeviceContext *This, ID3D11Buffer * pIndexBuffer, DXGI_FORMAT Format, UINT Offset);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_IASetIndexBuffer(ID3D11DeviceContext *This, ID3D11Buffer * pIndexBuffer, DXGI_FORMAT Format, UINT Offset)
 {
+    dirk_h_ID3D11DeviceContext_IASetIndexBuffer(This, pIndexBuffer, Format, Offset);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.IASetIndexBuffer"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4;
@@ -2852,8 +2866,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_IASetIndexBuffer(ID3D11
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_DrawIndexedInstanced(ID3D11DeviceContext *This, UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, INT BaseVertexLocation, UINT StartInstanceLocation);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawIndexedInstanced(ID3D11DeviceContext *This, UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, INT BaseVertexLocation, UINT StartInstanceLocation)
 {
+    dirk_h_ID3D11DeviceContext_DrawIndexedInstanced(This, IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.DrawIndexedInstanced"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4 + 4 + 4;
@@ -2870,8 +2886,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawIndexedInstanced(ID
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_DrawInstanced(ID3D11DeviceContext *This, UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawInstanced(ID3D11DeviceContext *This, UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation)
 {
+    dirk_h_ID3D11DeviceContext_DrawInstanced(This, VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.DrawInstanced"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4 + 4;
@@ -2919,8 +2937,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_GSSetShader(ID3D11Devic
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_IASetPrimitiveTopology(ID3D11DeviceContext *This, D3D11_PRIMITIVE_TOPOLOGY Topology);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_IASetPrimitiveTopology(ID3D11DeviceContext *This, D3D11_PRIMITIVE_TOPOLOGY Topology)
 {
+    dirk_h_ID3D11DeviceContext_IASetPrimitiveTopology(This, Topology);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.IASetPrimitiveTopology"); } }
     size_t size = DIRK_REC_HEADER + 4;
@@ -3147,8 +3167,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_SOSetTargets(ID3D11Devi
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_DrawAuto(ID3D11DeviceContext *This);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawAuto(ID3D11DeviceContext *This)
 {
+    dirk_h_ID3D11DeviceContext_DrawAuto(This);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.DrawAuto"); } }
     size_t size = DIRK_REC_HEADER;
@@ -3160,8 +3182,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawAuto(ID3D11DeviceCo
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_DrawIndexedInstancedIndirect(ID3D11DeviceContext *This, ID3D11Buffer * pBufferForArgs, UINT AlignedByteOffsetForArgs);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawIndexedInstancedIndirect(ID3D11DeviceContext *This, ID3D11Buffer * pBufferForArgs, UINT AlignedByteOffsetForArgs)
 {
+    dirk_h_ID3D11DeviceContext_DrawIndexedInstancedIndirect(This, pBufferForArgs, AlignedByteOffsetForArgs);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.DrawIndexedInstancedIndirect"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4;
@@ -3175,8 +3199,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawIndexedInstancedInd
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_DrawInstancedIndirect(ID3D11DeviceContext *This, ID3D11Buffer * pBufferForArgs, UINT AlignedByteOffsetForArgs);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_DrawInstancedIndirect(ID3D11DeviceContext *This, ID3D11Buffer * pBufferForArgs, UINT AlignedByteOffsetForArgs)
 {
+    dirk_h_ID3D11DeviceContext_DrawInstancedIndirect(This, pBufferForArgs, AlignedByteOffsetForArgs);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.DrawInstancedIndirect"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4;
@@ -3267,8 +3293,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_RSSetScissorRects(ID3D1
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_CopySubresourceRegion(ID3D11DeviceContext *This, ID3D11Resource * pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D11Resource * pSrcResource, UINT SrcSubresource, const D3D11_BOX * pSrcBox);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_CopySubresourceRegion(ID3D11DeviceContext *This, ID3D11Resource * pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D11Resource * pSrcResource, UINT SrcSubresource, const D3D11_BOX * pSrcBox)
 {
+    dirk_h_ID3D11DeviceContext_CopySubresourceRegion(This, pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.CopySubresourceRegion"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4 + 4 + 4 + 4 + 4 + (4 + dirk_size_array_D3D11_BOX(pSrcBox, 1));
@@ -3289,8 +3317,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_CopySubresourceRegion(I
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_CopyResource(ID3D11DeviceContext *This, ID3D11Resource * pDstResource, ID3D11Resource * pSrcResource);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_CopyResource(ID3D11DeviceContext *This, ID3D11Resource * pDstResource, ID3D11Resource * pSrcResource)
 {
+    dirk_h_ID3D11DeviceContext_CopyResource(This, pDstResource, pSrcResource);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.CopyResource"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4;
@@ -3305,8 +3335,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_CopyResource(ID3D11Devi
 }
 
 void STDMETHODCALLTYPE dirk_g_ID3D11DeviceContext_UpdateSubresource(ID3D11DeviceContext *This, ID3D11Resource * pDstResource, UINT DstSubresource, const D3D11_BOX * pDstBox, const void * pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch);
+void dirk_h_ID3D11DeviceContext_CopyStructureCount(ID3D11DeviceContext *This, ID3D11Buffer * pDstBuffer, UINT DstAlignedByteOffset, ID3D11UnorderedAccessView * pSrcView);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_CopyStructureCount(ID3D11DeviceContext *This, ID3D11Buffer * pDstBuffer, UINT DstAlignedByteOffset, ID3D11UnorderedAccessView * pSrcView)
 {
+    dirk_h_ID3D11DeviceContext_CopyStructureCount(This, pDstBuffer, DstAlignedByteOffset, pSrcView);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.CopyStructureCount"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4;
@@ -3450,8 +3482,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_ResolveSubresource(ID3D
     (void)r;
 }
 
+void dirk_h_ID3D11DeviceContext_ExecuteCommandList(ID3D11DeviceContext *This, ID3D11CommandList * pCommandList, BOOL RestoreContextState);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_ExecuteCommandList(ID3D11DeviceContext *This, ID3D11CommandList * pCommandList, BOOL RestoreContextState)
 {
+    dirk_h_ID3D11DeviceContext_ExecuteCommandList(This, pCommandList, RestoreContextState);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.ExecuteCommandList"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4;
@@ -4491,8 +4525,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_CSGetConstantBuffers(ID
     dirk_reply_done(self);
 }
 
+void dirk_h_ID3D11DeviceContext_ClearState(ID3D11DeviceContext *This);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_ClearState(ID3D11DeviceContext *This)
 {
+    dirk_h_ID3D11DeviceContext_ClearState(This);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.ClearState"); } }
     size_t size = DIRK_REC_HEADER;
@@ -4556,8 +4592,10 @@ static UINT STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_GetContextFlags(ID3D11D
     return result;
 }
 
+void dirk_h_ID3D11DeviceContext_FinishCommandList(ID3D11DeviceContext *This, BOOL RestoreDeferredContextState, ID3D11CommandList * * ppCommandList);
 static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext_FinishCommandList(ID3D11DeviceContext *This, BOOL RestoreDeferredContextState, ID3D11CommandList * * ppCommandList)
 {
+    dirk_h_ID3D11DeviceContext_FinishCommandList(This, RestoreDeferredContextState, ppCommandList);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext.FinishCommandList"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4;
@@ -4708,6 +4746,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CreateDepthStencilView(ID3D
     return result;
 }
 
+void dirk_p_ID3D11Device_CreateInputLayout(struct dirk_proxy *made, ID3D11Device *This, const D3D11_INPUT_ELEMENT_DESC * pInputElementDescs, UINT NumElements, const void * pShaderBytecodeWithInputSignature, SIZE_T BytecodeLength, ID3D11InputLayout * * ppInputLayout);
 static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CreateInputLayout(ID3D11Device *This, const D3D11_INPUT_ELEMENT_DESC * pInputElementDescs, UINT NumElements, const void * pShaderBytecodeWithInputSignature, SIZE_T BytecodeLength, ID3D11InputLayout * * ppInputLayout)
 {
     struct dirk_proxy *self = dirk_proxy_of(This);
@@ -4724,6 +4763,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CreateInputLayout(ID3D11Dev
     w = dirk_put_val(w, &BytecodeLength, sizeof(BytecodeLength), 8);
     struct dirk_proxy *new_ppInputLayout = ppInputLayout ? dirk_proxy_new(self, DIRK_IFACE_ID3D11InputLayout) : NULL;
     w = dirk_put_u32(w, new_ppInputLayout ? new_ppInputLayout->handle : 0);
+    if (new_ppInputLayout) dirk_p_ID3D11Device_CreateInputLayout(new_ppInputLayout, This, pInputElementDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, ppInputLayout);
     const uint8_t *r = dirk_end(self, w);
     if (!wait) {
         *ppInputLayout = (ID3D11InputLayout *)new_ppInputLayout;
@@ -5414,8 +5454,10 @@ static void STDMETHODCALLTYPE dirk_w_ID3D11BlendState1_GetDesc1(ID3D11BlendState
     dirk_reply_done(self);
 }
 
+void dirk_h_ID3D11DeviceContext1_CopySubresourceRegion1(ID3D11DeviceContext1 *This, ID3D11Resource * pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D11Resource * pSrcResource, UINT SrcSubresource, const D3D11_BOX * pSrcBox, UINT CopyFlags);
 static void STDMETHODCALLTYPE dirk_w_ID3D11DeviceContext1_CopySubresourceRegion1(ID3D11DeviceContext1 *This, ID3D11Resource * pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D11Resource * pSrcResource, UINT SrcSubresource, const D3D11_BOX * pSrcBox, UINT CopyFlags)
 {
+    dirk_h_ID3D11DeviceContext1_CopySubresourceRegion1(This, pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox, CopyFlags);
     struct dirk_proxy *self = dirk_proxy_of(This);
     { static int seen_; if (dirk_trace_on && !seen_) { seen_ = 1; dirk_trace_first("ID3D11DeviceContext1.CopySubresourceRegion1"); } }
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4 + 4 + 4 + 4 + 4 + (4 + dirk_size_array_D3D11_BOX(pSrcBox, 1)) + 4;

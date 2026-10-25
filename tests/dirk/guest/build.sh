@@ -24,7 +24,7 @@ fi
 "$CC" -std=gnu11 -O2 -static -pthread \
   -I"$D/include/native" -I"$D/include/native/windows" -I"$D/include/native/directx" \
   -I"$D/src/dirk/wire" -I"$D/src/dirk/wire/gen" -I"$HERE" -I"$SHADERS" \
-  "$HERE/tri.c" "$HERE/gex_transport.c" "$D/src/dirk/wire/dirk_guest.c" \
+  "$HERE/tri.c" "$HERE/gex_transport.c" "$D/src/dirk/wire/dirk_guest.c" "$D/src/dirk/wire/dirk_draw.c" \
   "$D/src/dirk/wire/gen/dirk_wire_guest.c" -o "$out/tri"
 echo "$out/tri"
 # And tri.exe, the same test as a Windows x64 program (W64, the shim's
