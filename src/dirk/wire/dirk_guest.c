@@ -1013,12 +1013,16 @@ HRESULT WINAPI dirk_D3D11CreateDeviceAndSwapChain(IDXGIAdapter *adapter,
     return hr;
 }
 
-void dirk_guest_window_surface(uint64_t window, uint32_t surface)
+void dirk_guest_window_surface(uint64_t window, uint32_t kind, uint32_t id,
+                               uint32_t width, uint32_t height)
 {
-    uint8_t *w = dirk_begin(NULL, DIRK_OP_SURFACE, DIRK_REC_HEADER + 12, 0);
+    uint8_t *w = dirk_begin(NULL, DIRK_OP_SURFACE, DIRK_REC_HEADER + 24, 0);
     if (!w)
         return;
     w = dirk_put_u64(w, window);
-    w = dirk_put_u32(w, surface);
+    w = dirk_put_u32(w, kind);
+    w = dirk_put_u32(w, id);
+    w = dirk_put_u32(w, width);
+    w = dirk_put_u32(w, height);
     dirk_end(NULL, w);
 }

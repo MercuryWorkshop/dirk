@@ -5,8 +5,8 @@
 #   MESA=<wink Mesa tree> [VKD3D_COMPILER=vkd3d-compiler] [EMXX=em++] [WIRE=1] \
 #     build.sh <wink-packaged-dir> <objects-dir> <out-dir>
 #
-# WIRE=1: the cube's calls go through the wire (objects built with
-# WINE_INCLUDE, whose generated guest side is in <objects-dir>/gen/wire).
+# WIRE=1: the cube's calls go through the wire, whose guest side is
+# src/dirk/wire.
 #
 # The objects are dirk's (objects.mk). cube.hlsl is compiled to DXBC with
 # vkd3d-compiler.
@@ -28,9 +28,9 @@ done
 wire=()
 if [ -n "${WIRE:-}" ]; then
   EMCC=${EMCC:-${EMXX%++}cc}
-  for f in "$D/src/dirk/wire/dirk_guest.c" "$objs/gen/wire/dirk_wire_guest.c"; do
+  for f in "$D/src/dirk/wire/dirk_guest.c" "$D/src/dirk/wire/gen/dirk_wire_guest.c"; do
     "$EMCC" -std=gnu11 -O2 -pthread -I"$D/include/native" -I"$D/include/native/windows" \
-      -I"$D/include/native/directx" -I"$D/src/dirk/wire" -I"$objs/gen/wire" \
+      -I"$D/include/native/directx" -I"$D/src/dirk/wire" -I"$D/src/dirk/wire/gen" \
       -c "$f" -o "$out/$(basename "$f" .c).o"
     wire+=("$out/$(basename "$f" .c).o")
   done

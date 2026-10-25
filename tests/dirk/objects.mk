@@ -3,21 +3,29 @@
 #
 #   make -f tests/dirk/objects.mk O=<obj-dir> MESA=<wink Mesa tree> \
 #     MESA_BUILD=<its meson build dir> WEBGPU_INC=<emdawnwebgpu include dir> \
-#     [GLSLANG=glslangValidator] [EMSDK=~/emsdk] [WINE_INCLUDE=<Wine's include dir>] -j
+#     [GLSLANG=glslangValidator] [EMSDK=~/emsdk] [WINE_INCLUDE=<Wine's include dir>] \
+#     [THREADS=0] [PKG=<dir>] -j
 #
-# With WINE_INCLUDE, the wire's host side too (src/dirk/wire), generated from
-# Wine's D3D11 and DXGI IDL.
+# THREADS=0: for a module without pthreads. PKG: also a package of them,
+# PKG/lib/libdirk.a and PKG/include, for a module that links dirk in (gex's
+# Mesa, -Dgex-dirk-dir); the wire's host side is in it.
+# Without GLSLANG, the video blit shaders are the ones in src/dirk/gen.
+#
+# With WINE_INCLUDE, `wire-gen` writes the wire's generated sources
+# (src/dirk/wire/gen) anew from Wine's D3D11 and DXGI IDL.
 D       := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../src)
 EMSDK   ?= $(HOME)/emsdk
 EMCC    := $(EMSDK)/upstream/emscripten/emcc
 EMXX    := $(EMSDK)/upstream/emscripten/em++
-GLSLANG ?= glslangValidator
+GLSLANG ?=
+THREADS ?= 1
+PTHREAD := $(if $(filter 0,$(THREADS)),,-pthread)
 G       := $(O)/gen
 
-DXVK_FLAGS := -std=c++17 -O2 -pthread -fwasm-exceptions -DNOMINMAX -D_WIN32_WINNT=0xa00 -DDXVK_WSI_DIRK \
+DXVK_FLAGS := -std=c++17 -O2 $(PTHREAD) -fwasm-exceptions -DNOMINMAX -D_WIN32_WINNT=0xa00 -DDXVK_WSI_DIRK \
   -I$(D)/../include -I$(D)/../include/native -I$(D)/../include/native/windows \
   -I$(D)/../include/native/directx -I$(D)/../include/vulkan/include -I$(D)/../include/spirv/include -I$(G)
-MESA_FLAGS := -O2 -pthread -fwasm-exceptions -sSUPPORT_LONGJMP=wasm -DNDEBUG -D_GNU_SOURCE \
+MESA_FLAGS := -O2 $(PTHREAD) -fwasm-exceptions -sSUPPORT_LONGJMP=wasm -DNDEBUG -D_GNU_SOURCE \
   -DMESA_DEBUG=0 -DHAVE_PTHREAD -DUSE_GCC_ATOMIC_BUILTINS -DHAVE_ENDIAN_H -DHAVE_STRUCT_TIMESPEC \
   -DHAVE___BUILTIN_EXPECT -DHAVE___BUILTIN_CLZ -DHAVE___BUILTIN_CLZLL -DHAVE___BUILTIN_CTZ \
   -DHAVE___BUILTIN_FFS -DHAVE___BUILTIN_FFSLL -DHAVE___BUILTIN_POPCOUNT -DHAVE___BUILTIN_POPCOUNTLL \
@@ -45,19 +53,19 @@ GEN := $(G)/buildenv.h $(G)/version.h $(G)/d3d11_video_blit_frag.h $(G)/d3d11_vi
 
 all: $(foreach f,$(FE) $(BK) $(CS) $(NIR),$(call name,$(f)))
 
-ifneq ($(WINE_INCLUDE),)
+# The wire's host side. Its generated sources are kept in src/dirk/wire/gen;
+# WINE_INCLUDE writes them anew from Wine's IDL first (make ... wire-gen).
 W     := $(D)/dirk/wire
-WGEN  := $(G)/wire/dirk_wire_ops.h $(G)/wire/dirk_wire_host.cpp $(G)/wire/dirk_wire_guest.c
-WFLAGS := -I$(W) -I$(G)/wire
-all: $(O)/dirk_wire_host.o $(O)/dirk_host.o
-$(WGEN) &: $(W)/gen.py $(W)/idl.py
-	@mkdir -p $(G)/wire
-	python3 $(W)/gen.py $(WINE_INCLUDE) $(G)/wire
-$(O)/dirk_wire_host.o: $(WGEN) $(W)/dirk_host.h $(W)/dirk_wire.h
-	@cd $(D) && $(EMXX) $(DXVK_FLAGS) $(WFLAGS) -c $(G)/wire/dirk_wire_host.cpp -o $@
-$(O)/dirk_host.o: $(W)/dirk_host.cpp $(WGEN) $(W)/dirk_host.h $(W)/dirk_wire.h $(W)/dirk_format.h
-	@cd $(D) && $(EMXX) $(DXVK_FLAGS) $(WFLAGS) -c $(W)/dirk_host.cpp -o $@
-endif
+WG    := $(W)/gen
+WFLAGS := -I$(W) -I$(WG)
+WIRE_OBJS := $(O)/dirk_wire_host.o $(O)/dirk_host.o
+all: $(WIRE_OBJS)
+wire-gen:
+	python3 $(W)/gen.py $(WINE_INCLUDE) $(WG)
+$(O)/dirk_wire_host.o: $(WG)/dirk_wire_host.cpp $(WG)/dirk_wire_ops.h $(W)/dirk_host.h $(W)/dirk_wire.h
+	@cd $(D) && $(EMXX) $(DXVK_FLAGS) $(WFLAGS) -c $< -o $@
+$(O)/dirk_host.o: $(W)/dirk_host.cpp $(WG)/dirk_wire_ops.h $(W)/dirk_host.h $(W)/dirk_wire.h $(W)/dirk_format.h
+	@cd $(D) && $(EMXX) $(DXVK_FLAGS) $(WFLAGS) -c $< -o $@
 
 $(G)/buildenv.h:
 	@mkdir -p $(G)
@@ -67,7 +75,7 @@ $(G)/version.h:
 	printf '#define DXVK_VERSION "v2.6.2-dirk"\n' > $@
 $(G)/d3d11_video_blit_%.h: $(D)/d3d11/shaders/d3d11_video_blit_%.*
 	@mkdir -p $(G)
-	$(GLSLANG) --quiet --target-env vulkan1.3 --vn d3d11_video_blit_$* -o $@ $<
+	$(if $(GLSLANG),$(GLSLANG) --quiet --target-env vulkan1.3 --vn d3d11_video_blit_$* -o $@ $<,cp $(D)/dirk/gen/d3d11_video_blit_$*.h $@)
 
 define fe
 $(call name,$(1)): $(1) $(GEN)
@@ -79,7 +87,7 @@ $(call name,$(1)): $(1) $(GEN)
 endef
 define cc
 $(call name,$(1)): $(1)
-	@cd $(D) && $(EMCC) -O2 -pthread -c $(1) -o $$@
+	@cd $(D) && $(EMCC) -O2 $(PTHREAD) -c $(1) -o $$@
 endef
 define nir
 $(call name,$(1)): $(1)
@@ -89,3 +97,18 @@ $(foreach f,$(FE),$(eval $(call fe,$(f))))
 $(foreach f,$(BK),$(eval $(call bk,$(f))))
 $(foreach f,$(CS),$(eval $(call cc,$(f))))
 $(foreach f,$(NIR),$(eval $(call nir,$(f))))
+
+ifneq ($(PKG),)
+EMAR := $(EMSDK)/upstream/emscripten/emar
+OBJS := $(foreach f,$(FE) $(BK) $(CS) $(NIR),$(call name,$(f))) $(WIRE_OBJS)
+all: $(PKG)/lib/libdirk.a $(PKG)/include/dirk/dirk.h $(PKG)/include/dirk_wire_host.h
+$(PKG)/lib/libdirk.a: $(OBJS)
+	@mkdir -p $(dir $@)
+	rm -f $@ && $(EMAR) rcs $@ $(OBJS)
+$(PKG)/include/dirk/dirk.h: $(D)/dirk/dirk.h
+	@mkdir -p $(dir $@)
+	cp $< $@
+$(PKG)/include/dirk_wire_host.h: $(D)/dirk/wire/dirk_wire_host.h
+	@mkdir -p $(dir $@)
+	cp $< $@
+endif

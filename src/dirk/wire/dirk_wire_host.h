@@ -20,8 +20,10 @@ extern "C" {
 struct dirk_wire_client;
 
 struct dirk_wire_host_ops {
-    /* The guest says which surface shows a window (DIRK_OP_SURFACE). */
-    void (*surface)(void *user, uint64_t window, uint32_t surface);
+    /* The guest says which surface shows a window, and its size
+     * (DIRK_OP_SURFACE). */
+    void (*surface)(void *user, uint64_t window, uint32_t kind, uint32_t id,
+                    uint32_t width, uint32_t height);
     void *user;
 };
 

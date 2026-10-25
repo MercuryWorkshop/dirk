@@ -78,8 +78,9 @@ enum dirk_special_op {
      * box (6 u32), u32 row pitch, u32 depth pitch, u32 copy flags, the
      * bytes as a blob. */
     DIRK_OP_UPDATE_SUBRESOURCE,
-    /* u64 window, u32 surface: the window the guest will make swap chains
-     * for is shown by that surface. */
+    /* u64 window, u32 kind, u32 id, u32 width, u32 height: the window the
+     * guest makes swap chains for is shown by that surface (kind 0 a
+     * Wayland surface, as the GL device's SURFACE says), and is that big. */
     DIRK_OP_SURFACE,
 };
 

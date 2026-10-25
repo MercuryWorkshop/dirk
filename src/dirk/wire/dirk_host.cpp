@@ -490,9 +490,12 @@ namespace dirk {
 
       case DIRK_OP_SURFACE: {
         uint64_t window = r.u64();
-        uint32_t surface = r.u32();
+        uint32_t kind = r.u32();
+        uint32_t id = r.u32();
+        uint32_t width = r.u32();
+        uint32_t height = r.u32();
         if (m_ops.surface)
-          m_ops.surface(m_ops.user, window, surface);
+          m_ops.surface(m_ops.user, window, kind, id, width, height);
         return true;
       }
     }
@@ -565,7 +568,15 @@ struct dirk_wire_client* dirk_wire_client_create(const struct dirk_wire_host_ops
 
 bool dirk_wire_client_submit(struct dirk_wire_client* client, const uint8_t* records, size_t len,
                              const uint8_t** reply, size_t* reply_len) {
-  return reinterpret_cast<dirk::Client*>(client)->submit(records, len, reply, reply_len);
+  // DXVK's exceptions end here: the caller is built without them.
+  try {
+    return reinterpret_cast<dirk::Client*>(client)->submit(records, len, reply, reply_len);
+  } catch (...) {
+    std::fprintf(stderr, "dirk: a D3D call threw; the stream is refused\n");
+    *reply = nullptr;
+    *reply_len = 0;
+    return false;
+  }
 }
 
 void dirk_wire_client_destroy(struct dirk_wire_client* client) {

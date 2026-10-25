@@ -145,7 +145,8 @@ HRESULT WINAPI dirk_D3D11CreateDeviceAndSwapChain(IDXGIAdapter *adapter,
         ID3D11Device **device, D3D_FEATURE_LEVEL *feature_level, ID3D11DeviceContext **context);
 HRESULT WINAPI dirk_CreateDXGIFactory2(UINT flags, REFIID riid, void **factory);
 
-/* Tells the host which surface shows a window. */
-void dirk_guest_window_surface(uint64_t window, uint32_t surface);
+/* Tells the host which surface shows a window, and its size. */
+void dirk_guest_window_surface(uint64_t window, uint32_t kind, uint32_t id,
+                               uint32_t width, uint32_t height);
 
 #endif
