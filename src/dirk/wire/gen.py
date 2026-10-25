@@ -43,6 +43,8 @@ GUEST = {
     'ID3D11Device3.CreateTexture2D1', 'ID3D11Device3.CreateTexture3D1',
     'ID3D11DeviceContext.Map', 'ID3D11DeviceContext.Unmap',
     'ID3D11DeviceContext.UpdateSubresource', 'ID3D11DeviceContext1.UpdateSubresource1',
+    'IDXGIFactory.MakeWindowAssociation', 'IDXGIFactory.GetWindowAssociation',
+    'IDXGISwapChain4.SetHDRMetaData', 'ID3D11Device.CheckCounterInfo',
 }
 
 # Sends what the stream holds once the call is written: the frame's end, and
@@ -83,8 +85,7 @@ UNSUPPORTED = {
     'IDXGIFactory2.RegisterStereoStatusEvent', 'IDXGIFactory2.RegisterOcclusionStatusWindow',
     'IDXGIFactory2.RegisterOcclusionStatusEvent', 'IDXGIFactory2.UnregisterStereoStatus',
     'IDXGIFactory2.UnregisterOcclusionStatus',
-    'IDXGIFactory.CreateSoftwareAdapter', 'IDXGIFactory.MakeWindowAssociation',
-    'IDXGIFactory.GetWindowAssociation',
+    'IDXGIFactory.CreateSoftwareAdapter',
     'IDXGIAdapter3.RegisterHardwareContentProtectionTeardownStatusEvent',
     'IDXGIAdapter3.UnregisterHardwareContentProtectionTeardownStatus',
     'IDXGIAdapter3.RegisterVideoMemoryBudgetChangeNotificationEvent',
@@ -95,12 +96,11 @@ UNSUPPORTED = {
     'IDXGIDevice2.EnqueueSetEvent', 'IDXGIDevice4.OfferResources1', 'IDXGIDevice4.ReclaimResources1',
     'IDXGISwapChain.GetFrameStatistics',
     'IDXGISwapChain1.GetRestrictToOutput', 'IDXGISwapChain2.GetFrameLatencyWaitableObject',
-    'IDXGISwapChain4.SetHDRMetaData', 
     'IDXGISwapChain3.ResizeBuffers1', 'IDXGISwapChain1.GetHwnd',
     'ID3D11Device.OpenSharedResource', 'ID3D11Device1.OpenSharedResource1',
     'ID3D11Device1.OpenSharedResourceByName', 'ID3D11Device1.CreateDeviceContextState',
     'ID3D11DeviceContext1.SwapDeviceContextState', 'ID3D11Device.CheckCounter',
-    'ID3D11Device.CheckCounterInfo', 'ID3D11Device.CreateCounter',
+    'ID3D11Device.CreateCounter',
     'ID3D11Device.CreateClassLinkage', 'ID3D11Device2.GetResourceTiling',
     'ID3D11DeviceContext2.UpdateTileMappings', 'ID3D11DeviceContext2.CopyTileMappings',
     'ID3D11DeviceContext2.CopyTiles', 'ID3D11DeviceContext2.UpdateTiles',

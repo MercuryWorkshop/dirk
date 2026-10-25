@@ -1099,3 +1099,38 @@ void dirk_guest_window_surface(uint64_t window, uint32_t kind, uint32_t id,
     w = dirk_put_u32(w, height);
     dirk_end(NULL, w);
 }
+
+/* Answered here, as DXVK answers them: nothing on the host would change. */
+
+/* DXGI's own Alt+Enter and Print Screen handling, which a page has no use
+ * for. Nearly every game calls it once at start. */
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIFactory_MakeWindowAssociation(IDXGIFactory *This, HWND window, UINT flags)
+{
+    (void)This; (void)window; (void)flags;
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIFactory_GetWindowAssociation(IDXGIFactory *This, HWND *window)
+{
+    (void)This;
+    if (!window)
+        return DXGI_ERROR_INVALID_CALL;
+    *window = NULL;
+    return S_OK;
+}
+
+/* The output is not HDR, so there is nothing for the metadata to drive. */
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain4_SetHDRMetaData(IDXGISwapChain4 *This, DXGI_HDR_METADATA_TYPE type,
+                                                                UINT size, void *metadata)
+{
+    (void)This; (void)type; (void)size; (void)metadata;
+    return S_OK;
+}
+
+/* No hardware counters. */
+void STDMETHODCALLTYPE dirk_g_ID3D11Device_CheckCounterInfo(ID3D11Device *This, D3D11_COUNTER_INFO *info)
+{
+    (void)This;
+    if (info)
+        memset(info, 0, sizeof(*info));
+}

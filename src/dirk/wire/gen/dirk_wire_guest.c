@@ -940,21 +940,8 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory_EnumAdapters(IDXGIFactory *
     return result;
 }
 
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory_MakeWindowAssociation(IDXGIFactory *This, HWND window, UINT flags)
-{
-    (void)window;
-    (void)flags;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGIFactory.MakeWindowAssociation"); } }
-    return E_NOTIMPL;
-}
-
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory_GetWindowAssociation(IDXGIFactory *This, HWND * window)
-{
-    (void)window;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGIFactory.GetWindowAssociation"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIFactory_MakeWindowAssociation(IDXGIFactory *This, HWND window, UINT flags);
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIFactory_GetWindowAssociation(IDXGIFactory *This, HWND * window);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory_CreateSwapChain(IDXGIFactory *This, IUnknown * device, DXGI_SWAP_CHAIN_DESC * desc, IDXGISwapChain * * swapchain)
 {
     dirk_window_seen(desc ? (uint64_t)(uintptr_t)desc->OutputWindow : 0);
@@ -2064,15 +2051,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIOutput5_DuplicateOutput1(IDXGIOutpu
     return E_NOTIMPL;
 }
 
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain4_SetHDRMetaData(IDXGISwapChain4 *This, DXGI_HDR_METADATA_TYPE type, UINT size, void * metadata)
-{
-    (void)type;
-    (void)size;
-    (void)metadata;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGISwapChain4.SetHDRMetaData"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain4_SetHDRMetaData(IDXGISwapChain4 *This, DXGI_HDR_METADATA_TYPE type, UINT size, void * metadata);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIDevice4_OfferResources1(IDXGIDevice4 *This, UINT resource_count, IDXGIResource * const * resources, DXGI_OFFER_RESOURCE_PRIORITY priority, UINT flags)
 {
     (void)resource_count;
@@ -5294,12 +5273,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CheckMultisampleQualityLeve
     return result;
 }
 
-static void STDMETHODCALLTYPE dirk_w_ID3D11Device_CheckCounterInfo(ID3D11Device *This, D3D11_COUNTER_INFO * pCounterInfo)
-{
-    (void)pCounterInfo;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "ID3D11Device.CheckCounterInfo"); } }
-}
-
+void STDMETHODCALLTYPE dirk_g_ID3D11Device_CheckCounterInfo(ID3D11Device *This, D3D11_COUNTER_INFO * pCounterInfo);
 static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CheckCounter(ID3D11Device *This, const D3D11_COUNTER_DESC * pDesc, D3D11_COUNTER_TYPE * pType, UINT * pActiveCounters, LPSTR szName, UINT * pNameLength, LPSTR szUnits, UINT * pUnitsLength, LPSTR szDescription, UINT * pDescriptionLength)
 {
     (void)pDesc;
@@ -6818,8 +6792,8 @@ static void *const dirk_vtbl_IDXGIFactory[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
 };
@@ -6879,8 +6853,8 @@ static void *const dirk_vtbl_IDXGIFactory1[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
     (void *)dirk_w_IDXGIFactory1_EnumAdapters1,
@@ -6982,8 +6956,8 @@ static void *const dirk_vtbl_IDXGIFactory2[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
     (void *)dirk_w_IDXGIFactory1_EnumAdapters1,
@@ -7138,8 +7112,8 @@ static void *const dirk_vtbl_IDXGIFactory3[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
     (void *)dirk_w_IDXGIFactory1_EnumAdapters1,
@@ -7267,8 +7241,8 @@ static void *const dirk_vtbl_IDXGIFactory4[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
     (void *)dirk_w_IDXGIFactory1_EnumAdapters1,
@@ -7381,7 +7355,7 @@ static void *const dirk_vtbl_IDXGISwapChain4[] = {
     (void *)dirk_w_IDXGISwapChain3_CheckColorSpaceSupport,
     (void *)dirk_w_IDXGISwapChain3_SetColorSpace1,
     (void *)dirk_w_IDXGISwapChain3_ResizeBuffers1,
-    (void *)dirk_w_IDXGISwapChain4_SetHDRMetaData,
+    (void *)dirk_g_IDXGISwapChain4_SetHDRMetaData,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGISwapChain4) == sizeof(IDXGISwapChain4Vtbl), "IDXGISwapChain4's vtable");
 static void *const dirk_vtbl_IDXGIDevice4[] = {
@@ -7416,8 +7390,8 @@ static void *const dirk_vtbl_IDXGIFactory5[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
     (void *)dirk_w_IDXGIFactory1_EnumAdapters1,
@@ -7502,8 +7476,8 @@ static void *const dirk_vtbl_IDXGIFactory6[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
     (void *)dirk_w_IDXGIFactory1_EnumAdapters1,
@@ -7535,8 +7509,8 @@ static void *const dirk_vtbl_IDXGIFactory7[] = {
     (void *)dirk_w_IDXGIObject_GetPrivateData,
     (void *)dirk_w_IDXGIObject_GetParent,
     (void *)dirk_w_IDXGIFactory_EnumAdapters,
-    (void *)dirk_w_IDXGIFactory_MakeWindowAssociation,
-    (void *)dirk_w_IDXGIFactory_GetWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_MakeWindowAssociation,
+    (void *)dirk_g_IDXGIFactory_GetWindowAssociation,
     (void *)dirk_w_IDXGIFactory_CreateSwapChain,
     (void *)dirk_w_IDXGIFactory_CreateSoftwareAdapter,
     (void *)dirk_w_IDXGIFactory1_EnumAdapters1,
@@ -8047,7 +8021,7 @@ static void *const dirk_vtbl_ID3D11Device[] = {
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
-    (void *)dirk_w_ID3D11Device_CheckCounterInfo,
+    (void *)dirk_g_ID3D11Device_CheckCounterInfo,
     (void *)dirk_w_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
@@ -8264,7 +8238,7 @@ static void *const dirk_vtbl_ID3D11Device1[] = {
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
-    (void *)dirk_w_ID3D11Device_CheckCounterInfo,
+    (void *)dirk_g_ID3D11Device_CheckCounterInfo,
     (void *)dirk_w_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
@@ -8464,7 +8438,7 @@ static void *const dirk_vtbl_ID3D11Device2[] = {
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
-    (void *)dirk_w_ID3D11Device_CheckCounterInfo,
+    (void *)dirk_g_ID3D11Device_CheckCounterInfo,
     (void *)dirk_w_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
@@ -8931,7 +8905,7 @@ static void *const dirk_vtbl_ID3D11Device3[] = {
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
-    (void *)dirk_w_ID3D11Device_CheckCounterInfo,
+    (void *)dirk_g_ID3D11Device_CheckCounterInfo,
     (void *)dirk_w_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
@@ -8999,7 +8973,7 @@ static void *const dirk_vtbl_ID3D11Device4[] = {
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
-    (void *)dirk_w_ID3D11Device_CheckCounterInfo,
+    (void *)dirk_g_ID3D11Device_CheckCounterInfo,
     (void *)dirk_w_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
@@ -9069,7 +9043,7 @@ static void *const dirk_vtbl_ID3D11Device5[] = {
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
-    (void *)dirk_w_ID3D11Device_CheckCounterInfo,
+    (void *)dirk_g_ID3D11Device_CheckCounterInfo,
     (void *)dirk_w_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
