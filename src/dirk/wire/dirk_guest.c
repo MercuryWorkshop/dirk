@@ -1134,3 +1134,102 @@ void STDMETHODCALLTYPE dirk_g_ID3D11Device_CheckCounterInfo(ID3D11Device *This, 
     if (info)
         memset(info, 0, sizeof(*info));
 }
+
+/* A page presents through the browser: no tearing. */
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIFactory5_CheckFeatureSupport(IDXGIFactory5 *This, DXGI_FEATURE feature,
+                                                                   void *data, UINT size)
+{
+    (void)This;
+    if (feature != DXGI_FEATURE_PRESENT_ALLOW_TEARING || !data || size != sizeof(BOOL))
+        return E_INVALIDARG;
+    *(BOOL *)data = FALSE;
+    return S_OK;
+}
+
+/* No present statistics: what DXGI says before it has any. */
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain_GetFrameStatistics(IDXGISwapChain *This, DXGI_FRAME_STATISTICS *stats)
+{
+    (void)This;
+    if (!stats)
+        return E_INVALIDARG;
+    memset(stats, 0, sizeof(*stats));
+    return DXGI_ERROR_FRAME_STATISTICS_DISJOINT;
+}
+
+/* The window the host made the swap chain for. */
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain1_GetHwnd(IDXGISwapChain1 *This, HWND *hwnd)
+{
+    DXGI_SWAP_CHAIN_DESC desc;
+    if (!hwnd)
+        return DXGI_ERROR_INVALID_CALL;
+    HRESULT hr = This->lpVtbl->GetDesc(This, &desc);
+    *hwnd = SUCCEEDED(hr) ? desc.OutputWindow : NULL;
+    return hr;
+}
+
+/* One adapter node and one queue: the masks and queues say nothing more. */
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain3_ResizeBuffers1(IDXGISwapChain3 *This, UINT buffer_count, UINT width,
+                                                                UINT height, DXGI_FORMAT format, UINT flags,
+                                                                const UINT *node_mask, IUnknown *const *present_queue)
+{
+    (void)node_mask; (void)present_queue;
+    return This->lpVtbl->ResizeBuffers(This, buffer_count, width, height, format, flags);
+}
+
+/* Memory is never taken back from an offered resource. */
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice2_OfferResources(IDXGIDevice2 *This, UINT count,
+                                                             IDXGIResource *const *resources,
+                                                             DXGI_OFFER_RESOURCE_PRIORITY priority)
+{
+    (void)This; (void)count; (void)resources; (void)priority;
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice2_ReclaimResources(IDXGIDevice2 *This, UINT count,
+                                                               IDXGIResource *const *resources, BOOL *discarded)
+{
+    (void)This; (void)resources;
+    if (discarded)
+        for (UINT i = 0; i < count; i++)
+            discarded[i] = FALSE;
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice4_OfferResources1(IDXGIDevice4 *This, UINT count,
+                                                              IDXGIResource *const *resources,
+                                                              DXGI_OFFER_RESOURCE_PRIORITY priority, UINT flags)
+{
+    (void)This; (void)count; (void)resources; (void)priority; (void)flags;
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice4_ReclaimResources1(IDXGIDevice4 *This, UINT count,
+                                                                IDXGIResource *const *resources,
+                                                                DXGI_RECLAIM_RESOURCE_RESULTS *results)
+{
+    (void)This; (void)resources;
+    if (results)
+        for (UINT i = 0; i < count; i++)
+            results[i] = DXGI_RECLAIM_RESOURCE_RESULT_OK;
+    return S_OK;
+}
+
+/* No hardware counters (CheckCounterInfo reports none). */
+HRESULT STDMETHODCALLTYPE dirk_g_ID3D11Device_CheckCounter(ID3D11Device *This, const D3D11_COUNTER_DESC *desc,
+                                                           D3D11_COUNTER_TYPE *type, UINT *active, LPSTR name,
+                                                           UINT *name_length, LPSTR units, UINT *units_length,
+                                                           LPSTR description, UINT *description_length)
+{
+    (void)This; (void)desc; (void)type; (void)active; (void)name; (void)name_length;
+    (void)units; (void)units_length; (void)description; (void)description_length;
+    return DXGI_ERROR_UNSUPPORTED;
+}
+
+HRESULT STDMETHODCALLTYPE dirk_g_ID3D11Device_CreateCounter(ID3D11Device *This, const D3D11_COUNTER_DESC *desc,
+                                                            ID3D11Counter **counter)
+{
+    (void)This; (void)desc;
+    if (counter)
+        *counter = NULL;
+    return DXGI_ERROR_UNSUPPORTED;
+}

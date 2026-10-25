@@ -889,13 +889,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain_GetContainingOutput(IDXGI
     return result;
 }
 
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain_GetFrameStatistics(IDXGISwapChain *This, DXGI_FRAME_STATISTICS * stats)
-{
-    (void)stats;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGISwapChain.GetFrameStatistics"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain_GetFrameStatistics(IDXGISwapChain *This, DXGI_FRAME_STATISTICS * stats);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain_GetLastPresentCount(IDXGISwapChain *This, UINT * last_present_count)
 {
     struct dirk_proxy *self = dirk_proxy_of(This);
@@ -1219,24 +1213,8 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIResource1_CreateSharedHandle(IDXGIR
     return E_NOTIMPL;
 }
 
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIDevice2_OfferResources(IDXGIDevice2 *This, UINT NumResources, IDXGIResource * const * ppResources, DXGI_OFFER_RESOURCE_PRIORITY Priority)
-{
-    (void)NumResources;
-    (void)ppResources;
-    (void)Priority;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGIDevice2.OfferResources"); } }
-    return E_NOTIMPL;
-}
-
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIDevice2_ReclaimResources(IDXGIDevice2 *This, UINT NumResources, IDXGIResource * const * ppResources, BOOL * pDiscarded)
-{
-    (void)NumResources;
-    (void)ppResources;
-    (void)pDiscarded;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGIDevice2.ReclaimResources"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice2_OfferResources(IDXGIDevice2 *This, UINT NumResources, IDXGIResource * const * ppResources, DXGI_OFFER_RESOURCE_PRIORITY Priority);
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice2_ReclaimResources(IDXGIDevice2 *This, UINT NumResources, IDXGIResource * const * ppResources, BOOL * pDiscarded);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIDevice2_EnqueueSetEvent(IDXGIDevice2 *This, HANDLE hEvent)
 {
     (void)hEvent;
@@ -1286,13 +1264,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain1_GetFullscreenDesc(IDXGIS
     return result;
 }
 
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain1_GetHwnd(IDXGISwapChain1 *This, HWND * pHwnd)
-{
-    (void)pHwnd;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGISwapChain1.GetHwnd"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain1_GetHwnd(IDXGISwapChain1 *This, HWND * pHwnd);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain1_GetCoreWindow(IDXGISwapChain1 *This, REFIID refiid, void * * ppUnk)
 {
     (void)refiid;
@@ -1890,19 +1862,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain3_SetColorSpace1(IDXGISwap
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain3_ResizeBuffers1(IDXGISwapChain3 *This, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT format, UINT flags, const UINT * node_mask, IUnknown * const * present_queue)
-{
-    (void)buffer_count;
-    (void)width;
-    (void)height;
-    (void)format;
-    (void)flags;
-    (void)node_mask;
-    (void)present_queue;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGISwapChain3.ResizeBuffers1"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain3_ResizeBuffers1(IDXGISwapChain3 *This, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT format, UINT flags, const UINT * node_mask, IUnknown * const * present_queue);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIOutput4_CheckOverlayColorSpaceSupport(IDXGIOutput4 *This, DXGI_FORMAT format, DXGI_COLOR_SPACE_TYPE colour_space, IUnknown * device, UINT * flags)
 {
     struct dirk_proxy *self = dirk_proxy_of(This);
@@ -2052,34 +2012,9 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIOutput5_DuplicateOutput1(IDXGIOutpu
 }
 
 HRESULT STDMETHODCALLTYPE dirk_g_IDXGISwapChain4_SetHDRMetaData(IDXGISwapChain4 *This, DXGI_HDR_METADATA_TYPE type, UINT size, void * metadata);
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIDevice4_OfferResources1(IDXGIDevice4 *This, UINT resource_count, IDXGIResource * const * resources, DXGI_OFFER_RESOURCE_PRIORITY priority, UINT flags)
-{
-    (void)resource_count;
-    (void)resources;
-    (void)priority;
-    (void)flags;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGIDevice4.OfferResources1"); } }
-    return E_NOTIMPL;
-}
-
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIDevice4_ReclaimResources1(IDXGIDevice4 *This, UINT resource_count, IDXGIResource * const * resources, DXGI_RECLAIM_RESOURCE_RESULTS * results)
-{
-    (void)resource_count;
-    (void)resources;
-    (void)results;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGIDevice4.ReclaimResources1"); } }
-    return E_NOTIMPL;
-}
-
-static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory5_CheckFeatureSupport(IDXGIFactory5 *This, DXGI_FEATURE feature, void * support_data, UINT support_data_size)
-{
-    (void)feature;
-    (void)support_data;
-    (void)support_data_size;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "IDXGIFactory5.CheckFeatureSupport"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice4_OfferResources1(IDXGIDevice4 *This, UINT resource_count, IDXGIResource * const * resources, DXGI_OFFER_RESOURCE_PRIORITY priority, UINT flags);
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIDevice4_ReclaimResources1(IDXGIDevice4 *This, UINT resource_count, IDXGIResource * const * resources, DXGI_RECLAIM_RESOURCE_RESULTS * results);
+HRESULT STDMETHODCALLTYPE dirk_g_IDXGIFactory5_CheckFeatureSupport(IDXGIFactory5 *This, DXGI_FEATURE feature, void * support_data, UINT support_data_size);
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIAdapter4_GetDesc3(IDXGIAdapter4 *This, DXGI_ADAPTER_DESC3 * desc)
 {
     struct dirk_proxy *self = dirk_proxy_of(This);
@@ -5181,14 +5116,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CreatePredicate(ID3D11Devic
     return result;
 }
 
-static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CreateCounter(ID3D11Device *This, const D3D11_COUNTER_DESC * pCounterDesc, ID3D11Counter * * ppCounter)
-{
-    (void)pCounterDesc;
-    (void)ppCounter;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "ID3D11Device.CreateCounter"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_ID3D11Device_CreateCounter(ID3D11Device *This, const D3D11_COUNTER_DESC * pCounterDesc, ID3D11Counter * * ppCounter);
 static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CreateDeferredContext(ID3D11Device *This, UINT ContextFlags, ID3D11DeviceContext * * ppDeferredContext)
 {
     struct dirk_proxy *self = dirk_proxy_of(This);
@@ -5274,21 +5202,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CheckMultisampleQualityLeve
 }
 
 void STDMETHODCALLTYPE dirk_g_ID3D11Device_CheckCounterInfo(ID3D11Device *This, D3D11_COUNTER_INFO * pCounterInfo);
-static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CheckCounter(ID3D11Device *This, const D3D11_COUNTER_DESC * pDesc, D3D11_COUNTER_TYPE * pType, UINT * pActiveCounters, LPSTR szName, UINT * pNameLength, LPSTR szUnits, UINT * pUnitsLength, LPSTR szDescription, UINT * pDescriptionLength)
-{
-    (void)pDesc;
-    (void)pType;
-    (void)pActiveCounters;
-    (void)szName;
-    (void)pNameLength;
-    (void)szUnits;
-    (void)pUnitsLength;
-    (void)szDescription;
-    (void)pDescriptionLength;
-    { static int seen_; if (!seen_) { seen_ = 1; dirk_unsupported(This, "ID3D11Device.CheckCounter"); } }
-    return E_NOTIMPL;
-}
-
+HRESULT STDMETHODCALLTYPE dirk_g_ID3D11Device_CheckCounter(ID3D11Device *This, const D3D11_COUNTER_DESC * pDesc, D3D11_COUNTER_TYPE * pType, UINT * pActiveCounters, LPSTR szName, UINT * pNameLength, LPSTR szUnits, UINT * pUnitsLength, LPSTR szDescription, UINT * pDescriptionLength);
 static HRESULT STDMETHODCALLTYPE dirk_w_ID3D11Device_CheckFeatureSupport(ID3D11Device *This, D3D11_FEATURE Feature, void * pFeatureSupportData, UINT FeatureSupportDataSize)
 {
     struct dirk_proxy *self = dirk_proxy_of(This);
@@ -6779,7 +6693,7 @@ static void *const dirk_vtbl_IDXGISwapChain[] = {
     (void *)dirk_w_IDXGISwapChain_ResizeBuffers,
     (void *)dirk_w_IDXGISwapChain_ResizeTarget,
     (void *)dirk_w_IDXGISwapChain_GetContainingOutput,
-    (void *)dirk_w_IDXGISwapChain_GetFrameStatistics,
+    (void *)dirk_g_IDXGISwapChain_GetFrameStatistics,
     (void *)dirk_w_IDXGISwapChain_GetLastPresentCount,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGISwapChain) == sizeof(IDXGISwapChainVtbl), "IDXGISwapChain's vtable");
@@ -6910,8 +6824,8 @@ static void *const dirk_vtbl_IDXGIDevice2[] = {
     (void *)dirk_w_IDXGIDevice_GetGPUThreadPriority,
     (void *)dirk_w_IDXGIDevice1_SetMaximumFrameLatency,
     (void *)dirk_w_IDXGIDevice1_GetMaximumFrameLatency,
-    (void *)dirk_w_IDXGIDevice2_OfferResources,
-    (void *)dirk_w_IDXGIDevice2_ReclaimResources,
+    (void *)dirk_g_IDXGIDevice2_OfferResources,
+    (void *)dirk_g_IDXGIDevice2_ReclaimResources,
     (void *)dirk_w_IDXGIDevice2_EnqueueSetEvent,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGIDevice2) == sizeof(IDXGIDevice2Vtbl), "IDXGIDevice2's vtable");
@@ -6932,11 +6846,11 @@ static void *const dirk_vtbl_IDXGISwapChain1[] = {
     (void *)dirk_w_IDXGISwapChain_ResizeBuffers,
     (void *)dirk_w_IDXGISwapChain_ResizeTarget,
     (void *)dirk_w_IDXGISwapChain_GetContainingOutput,
-    (void *)dirk_w_IDXGISwapChain_GetFrameStatistics,
+    (void *)dirk_g_IDXGISwapChain_GetFrameStatistics,
     (void *)dirk_w_IDXGISwapChain_GetLastPresentCount,
     (void *)dirk_w_IDXGISwapChain1_GetDesc1,
     (void *)dirk_w_IDXGISwapChain1_GetFullscreenDesc,
-    (void *)dirk_w_IDXGISwapChain1_GetHwnd,
+    (void *)dirk_g_IDXGISwapChain1_GetHwnd,
     (void *)dirk_w_IDXGISwapChain1_GetCoreWindow,
     (void *)dirk_w_IDXGISwapChain1_Present1,
     (void *)dirk_w_IDXGISwapChain1_IsTemporaryMonoSupported,
@@ -7031,8 +6945,8 @@ static void *const dirk_vtbl_IDXGIDevice3[] = {
     (void *)dirk_w_IDXGIDevice_GetGPUThreadPriority,
     (void *)dirk_w_IDXGIDevice1_SetMaximumFrameLatency,
     (void *)dirk_w_IDXGIDevice1_GetMaximumFrameLatency,
-    (void *)dirk_w_IDXGIDevice2_OfferResources,
-    (void *)dirk_w_IDXGIDevice2_ReclaimResources,
+    (void *)dirk_g_IDXGIDevice2_OfferResources,
+    (void *)dirk_g_IDXGIDevice2_ReclaimResources,
     (void *)dirk_w_IDXGIDevice2_EnqueueSetEvent,
     (void *)dirk_w_IDXGIDevice3_Trim,
 };
@@ -7054,11 +6968,11 @@ static void *const dirk_vtbl_IDXGISwapChain2[] = {
     (void *)dirk_w_IDXGISwapChain_ResizeBuffers,
     (void *)dirk_w_IDXGISwapChain_ResizeTarget,
     (void *)dirk_w_IDXGISwapChain_GetContainingOutput,
-    (void *)dirk_w_IDXGISwapChain_GetFrameStatistics,
+    (void *)dirk_g_IDXGISwapChain_GetFrameStatistics,
     (void *)dirk_w_IDXGISwapChain_GetLastPresentCount,
     (void *)dirk_w_IDXGISwapChain1_GetDesc1,
     (void *)dirk_w_IDXGISwapChain1_GetFullscreenDesc,
-    (void *)dirk_w_IDXGISwapChain1_GetHwnd,
+    (void *)dirk_g_IDXGISwapChain1_GetHwnd,
     (void *)dirk_w_IDXGISwapChain1_GetCoreWindow,
     (void *)dirk_w_IDXGISwapChain1_Present1,
     (void *)dirk_w_IDXGISwapChain1_IsTemporaryMonoSupported,
@@ -7177,11 +7091,11 @@ static void *const dirk_vtbl_IDXGISwapChain3[] = {
     (void *)dirk_w_IDXGISwapChain_ResizeBuffers,
     (void *)dirk_w_IDXGISwapChain_ResizeTarget,
     (void *)dirk_w_IDXGISwapChain_GetContainingOutput,
-    (void *)dirk_w_IDXGISwapChain_GetFrameStatistics,
+    (void *)dirk_g_IDXGISwapChain_GetFrameStatistics,
     (void *)dirk_w_IDXGISwapChain_GetLastPresentCount,
     (void *)dirk_w_IDXGISwapChain1_GetDesc1,
     (void *)dirk_w_IDXGISwapChain1_GetFullscreenDesc,
-    (void *)dirk_w_IDXGISwapChain1_GetHwnd,
+    (void *)dirk_g_IDXGISwapChain1_GetHwnd,
     (void *)dirk_w_IDXGISwapChain1_GetCoreWindow,
     (void *)dirk_w_IDXGISwapChain1_Present1,
     (void *)dirk_w_IDXGISwapChain1_IsTemporaryMonoSupported,
@@ -7200,7 +7114,7 @@ static void *const dirk_vtbl_IDXGISwapChain3[] = {
     (void *)dirk_w_IDXGISwapChain3_GetCurrentBackBufferIndex,
     (void *)dirk_w_IDXGISwapChain3_CheckColorSpaceSupport,
     (void *)dirk_w_IDXGISwapChain3_SetColorSpace1,
-    (void *)dirk_w_IDXGISwapChain3_ResizeBuffers1,
+    (void *)dirk_g_IDXGISwapChain3_ResizeBuffers1,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGISwapChain3) == sizeof(IDXGISwapChain3Vtbl), "IDXGISwapChain3's vtable");
 static void *const dirk_vtbl_IDXGIOutput4[] = {
@@ -7331,11 +7245,11 @@ static void *const dirk_vtbl_IDXGISwapChain4[] = {
     (void *)dirk_w_IDXGISwapChain_ResizeBuffers,
     (void *)dirk_w_IDXGISwapChain_ResizeTarget,
     (void *)dirk_w_IDXGISwapChain_GetContainingOutput,
-    (void *)dirk_w_IDXGISwapChain_GetFrameStatistics,
+    (void *)dirk_g_IDXGISwapChain_GetFrameStatistics,
     (void *)dirk_w_IDXGISwapChain_GetLastPresentCount,
     (void *)dirk_w_IDXGISwapChain1_GetDesc1,
     (void *)dirk_w_IDXGISwapChain1_GetFullscreenDesc,
-    (void *)dirk_w_IDXGISwapChain1_GetHwnd,
+    (void *)dirk_g_IDXGISwapChain1_GetHwnd,
     (void *)dirk_w_IDXGISwapChain1_GetCoreWindow,
     (void *)dirk_w_IDXGISwapChain1_Present1,
     (void *)dirk_w_IDXGISwapChain1_IsTemporaryMonoSupported,
@@ -7354,7 +7268,7 @@ static void *const dirk_vtbl_IDXGISwapChain4[] = {
     (void *)dirk_w_IDXGISwapChain3_GetCurrentBackBufferIndex,
     (void *)dirk_w_IDXGISwapChain3_CheckColorSpaceSupport,
     (void *)dirk_w_IDXGISwapChain3_SetColorSpace1,
-    (void *)dirk_w_IDXGISwapChain3_ResizeBuffers1,
+    (void *)dirk_g_IDXGISwapChain3_ResizeBuffers1,
     (void *)dirk_g_IDXGISwapChain4_SetHDRMetaData,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGISwapChain4) == sizeof(IDXGISwapChain4Vtbl), "IDXGISwapChain4's vtable");
@@ -7373,12 +7287,12 @@ static void *const dirk_vtbl_IDXGIDevice4[] = {
     (void *)dirk_w_IDXGIDevice_GetGPUThreadPriority,
     (void *)dirk_w_IDXGIDevice1_SetMaximumFrameLatency,
     (void *)dirk_w_IDXGIDevice1_GetMaximumFrameLatency,
-    (void *)dirk_w_IDXGIDevice2_OfferResources,
-    (void *)dirk_w_IDXGIDevice2_ReclaimResources,
+    (void *)dirk_g_IDXGIDevice2_OfferResources,
+    (void *)dirk_g_IDXGIDevice2_ReclaimResources,
     (void *)dirk_w_IDXGIDevice2_EnqueueSetEvent,
     (void *)dirk_w_IDXGIDevice3_Trim,
-    (void *)dirk_w_IDXGIDevice4_OfferResources1,
-    (void *)dirk_w_IDXGIDevice4_ReclaimResources1,
+    (void *)dirk_g_IDXGIDevice4_OfferResources1,
+    (void *)dirk_g_IDXGIDevice4_ReclaimResources1,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGIDevice4) == sizeof(IDXGIDevice4Vtbl), "IDXGIDevice4's vtable");
 static void *const dirk_vtbl_IDXGIFactory5[] = {
@@ -7410,7 +7324,7 @@ static void *const dirk_vtbl_IDXGIFactory5[] = {
     (void *)dirk_w_IDXGIFactory3_GetCreationFlags,
     (void *)dirk_w_IDXGIFactory4_EnumAdapterByLuid,
     (void *)dirk_w_IDXGIFactory4_EnumWarpAdapter,
-    (void *)dirk_w_IDXGIFactory5_CheckFeatureSupport,
+    (void *)dirk_g_IDXGIFactory5_CheckFeatureSupport,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGIFactory5) == sizeof(IDXGIFactory5Vtbl), "IDXGIFactory5's vtable");
 static void *const dirk_vtbl_IDXGIAdapter4[] = {
@@ -7496,7 +7410,7 @@ static void *const dirk_vtbl_IDXGIFactory6[] = {
     (void *)dirk_w_IDXGIFactory3_GetCreationFlags,
     (void *)dirk_w_IDXGIFactory4_EnumAdapterByLuid,
     (void *)dirk_w_IDXGIFactory4_EnumWarpAdapter,
-    (void *)dirk_w_IDXGIFactory5_CheckFeatureSupport,
+    (void *)dirk_g_IDXGIFactory5_CheckFeatureSupport,
     (void *)dirk_w_IDXGIFactory6_EnumAdapterByGpuPreference,
 };
 _Static_assert(sizeof(dirk_vtbl_IDXGIFactory6) == sizeof(IDXGIFactory6Vtbl), "IDXGIFactory6's vtable");
@@ -7529,7 +7443,7 @@ static void *const dirk_vtbl_IDXGIFactory7[] = {
     (void *)dirk_w_IDXGIFactory3_GetCreationFlags,
     (void *)dirk_w_IDXGIFactory4_EnumAdapterByLuid,
     (void *)dirk_w_IDXGIFactory4_EnumWarpAdapter,
-    (void *)dirk_w_IDXGIFactory5_CheckFeatureSupport,
+    (void *)dirk_g_IDXGIFactory5_CheckFeatureSupport,
     (void *)dirk_w_IDXGIFactory6_EnumAdapterByGpuPreference,
     (void *)dirk_w_IDXGIFactory7_RegisterAdaptersChangedEvent,
     (void *)dirk_w_IDXGIFactory7_UnregisterAdaptersChangedEvent,
@@ -8016,13 +7930,13 @@ static void *const dirk_vtbl_ID3D11Device[] = {
     (void *)dirk_w_ID3D11Device_CreateSamplerState,
     (void *)dirk_w_ID3D11Device_CreateQuery,
     (void *)dirk_w_ID3D11Device_CreatePredicate,
-    (void *)dirk_w_ID3D11Device_CreateCounter,
+    (void *)dirk_g_ID3D11Device_CreateCounter,
     (void *)dirk_w_ID3D11Device_CreateDeferredContext,
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
     (void *)dirk_g_ID3D11Device_CheckCounterInfo,
-    (void *)dirk_w_ID3D11Device_CheckCounter,
+    (void *)dirk_g_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
     (void *)dirk_w_ID3D11Device_SetPrivateData,
@@ -8233,13 +8147,13 @@ static void *const dirk_vtbl_ID3D11Device1[] = {
     (void *)dirk_w_ID3D11Device_CreateSamplerState,
     (void *)dirk_w_ID3D11Device_CreateQuery,
     (void *)dirk_w_ID3D11Device_CreatePredicate,
-    (void *)dirk_w_ID3D11Device_CreateCounter,
+    (void *)dirk_g_ID3D11Device_CreateCounter,
     (void *)dirk_w_ID3D11Device_CreateDeferredContext,
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
     (void *)dirk_g_ID3D11Device_CheckCounterInfo,
-    (void *)dirk_w_ID3D11Device_CheckCounter,
+    (void *)dirk_g_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
     (void *)dirk_w_ID3D11Device_SetPrivateData,
@@ -8433,13 +8347,13 @@ static void *const dirk_vtbl_ID3D11Device2[] = {
     (void *)dirk_w_ID3D11Device_CreateSamplerState,
     (void *)dirk_w_ID3D11Device_CreateQuery,
     (void *)dirk_w_ID3D11Device_CreatePredicate,
-    (void *)dirk_w_ID3D11Device_CreateCounter,
+    (void *)dirk_g_ID3D11Device_CreateCounter,
     (void *)dirk_w_ID3D11Device_CreateDeferredContext,
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
     (void *)dirk_g_ID3D11Device_CheckCounterInfo,
-    (void *)dirk_w_ID3D11Device_CheckCounter,
+    (void *)dirk_g_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
     (void *)dirk_w_ID3D11Device_SetPrivateData,
@@ -8900,13 +8814,13 @@ static void *const dirk_vtbl_ID3D11Device3[] = {
     (void *)dirk_w_ID3D11Device_CreateSamplerState,
     (void *)dirk_w_ID3D11Device_CreateQuery,
     (void *)dirk_w_ID3D11Device_CreatePredicate,
-    (void *)dirk_w_ID3D11Device_CreateCounter,
+    (void *)dirk_g_ID3D11Device_CreateCounter,
     (void *)dirk_w_ID3D11Device_CreateDeferredContext,
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
     (void *)dirk_g_ID3D11Device_CheckCounterInfo,
-    (void *)dirk_w_ID3D11Device_CheckCounter,
+    (void *)dirk_g_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
     (void *)dirk_w_ID3D11Device_SetPrivateData,
@@ -8968,13 +8882,13 @@ static void *const dirk_vtbl_ID3D11Device4[] = {
     (void *)dirk_w_ID3D11Device_CreateSamplerState,
     (void *)dirk_w_ID3D11Device_CreateQuery,
     (void *)dirk_w_ID3D11Device_CreatePredicate,
-    (void *)dirk_w_ID3D11Device_CreateCounter,
+    (void *)dirk_g_ID3D11Device_CreateCounter,
     (void *)dirk_w_ID3D11Device_CreateDeferredContext,
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
     (void *)dirk_g_ID3D11Device_CheckCounterInfo,
-    (void *)dirk_w_ID3D11Device_CheckCounter,
+    (void *)dirk_g_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
     (void *)dirk_w_ID3D11Device_SetPrivateData,
@@ -9038,13 +8952,13 @@ static void *const dirk_vtbl_ID3D11Device5[] = {
     (void *)dirk_w_ID3D11Device_CreateSamplerState,
     (void *)dirk_w_ID3D11Device_CreateQuery,
     (void *)dirk_w_ID3D11Device_CreatePredicate,
-    (void *)dirk_w_ID3D11Device_CreateCounter,
+    (void *)dirk_g_ID3D11Device_CreateCounter,
     (void *)dirk_w_ID3D11Device_CreateDeferredContext,
     (void *)dirk_w_ID3D11Device_OpenSharedResource,
     (void *)dirk_w_ID3D11Device_CheckFormatSupport,
     (void *)dirk_w_ID3D11Device_CheckMultisampleQualityLevels,
     (void *)dirk_g_ID3D11Device_CheckCounterInfo,
-    (void *)dirk_w_ID3D11Device_CheckCounter,
+    (void *)dirk_g_ID3D11Device_CheckCounter,
     (void *)dirk_w_ID3D11Device_CheckFeatureSupport,
     (void *)dirk_w_ID3D11Device_GetPrivateData,
     (void *)dirk_w_ID3D11Device_SetPrivateData,

@@ -45,6 +45,11 @@ GUEST = {
     'ID3D11DeviceContext.UpdateSubresource', 'ID3D11DeviceContext1.UpdateSubresource1',
     'IDXGIFactory.MakeWindowAssociation', 'IDXGIFactory.GetWindowAssociation',
     'IDXGISwapChain4.SetHDRMetaData', 'ID3D11Device.CheckCounterInfo',
+    'IDXGIFactory5.CheckFeatureSupport', 'IDXGISwapChain.GetFrameStatistics',
+    'IDXGISwapChain1.GetHwnd', 'IDXGISwapChain3.ResizeBuffers1',
+    'IDXGIDevice2.OfferResources', 'IDXGIDevice2.ReclaimResources',
+    'IDXGIDevice4.OfferResources1', 'IDXGIDevice4.ReclaimResources1',
+    'ID3D11Device.CheckCounter', 'ID3D11Device.CreateCounter',
 }
 
 # Sends what the stream holds once the call is written: the frame's end, and
@@ -92,15 +97,11 @@ UNSUPPORTED = {
     'IDXGIAdapter3.UnregisterVideoMemoryBudgetChangeNotification',
     'IDXGIFactory7.RegisterAdaptersChangedEvent', 'IDXGIFactory7.UnregisterAdaptersChangedEvent',
     'IDXGIDevice.CreateSurface', 'IDXGIDevice.QueryResourceResidency',
-    'IDXGIDevice2.OfferResources', 'IDXGIDevice2.ReclaimResources',
-    'IDXGIDevice2.EnqueueSetEvent', 'IDXGIDevice4.OfferResources1', 'IDXGIDevice4.ReclaimResources1',
-    'IDXGISwapChain.GetFrameStatistics',
+    'IDXGIDevice2.EnqueueSetEvent',
     'IDXGISwapChain1.GetRestrictToOutput', 'IDXGISwapChain2.GetFrameLatencyWaitableObject',
-    'IDXGISwapChain3.ResizeBuffers1', 'IDXGISwapChain1.GetHwnd',
     'ID3D11Device.OpenSharedResource', 'ID3D11Device1.OpenSharedResource1',
     'ID3D11Device1.OpenSharedResourceByName', 'ID3D11Device1.CreateDeviceContextState',
-    'ID3D11DeviceContext1.SwapDeviceContextState', 'ID3D11Device.CheckCounter',
-    'ID3D11Device.CreateCounter',
+    'ID3D11DeviceContext1.SwapDeviceContextState',
     'ID3D11Device.CreateClassLinkage', 'ID3D11Device2.GetResourceTiling',
     'ID3D11DeviceContext2.UpdateTileMappings', 'ID3D11DeviceContext2.CopyTileMappings',
     'ID3D11DeviceContext2.CopyTiles', 'ID3D11DeviceContext2.UpdateTiles',
@@ -115,7 +116,7 @@ UNSUPPORTED = {
     'ID3D11DeviceContext3.GetHardwareProtectionState',
     'ID3D11DeviceContext3.SetHardwareProtectionState',
     'ID3D11Device.CreateGeometryShaderWithStreamOutput',
-    'IDXGIFactory5.CheckFeatureSupport', 'IDXGIFactory2.GetSharedResourceAdapterLuid',
+    'IDXGIFactory2.GetSharedResourceAdapterLuid',
 }
 
 # Sizes the IDL does not say. ('blob', expr): bytes; ('count', expr): elements.
