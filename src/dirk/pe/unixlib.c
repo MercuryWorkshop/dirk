@@ -41,6 +41,14 @@ struct header {
     uint32_t magic, capacity, tail, reply_capacity, reply_len, status, failed_at, protocol_version;
 };
 
+/* The highest address the PE side can use: a memory64 process's native PE
+ * core is wasm64 too and reaches all of it; otherwise PE pointers are 32-bit. */
+#ifdef GEX_MEMORY64
+#define PE_REACH UINTPTR_MAX
+#else
+#define PE_REACH 0xffffffffu
+#endif
+
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 static int fd = -1;
 static struct header *ring;
@@ -65,7 +73,7 @@ static NTSTATUS dirk_init(void *args)
             goto done;
         }
         p = mmap(NULL, total, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        if (p == MAP_FAILED || (uintptr_t)p + total > 0xffffffffu) {
+        if (p == MAP_FAILED || (uintptr_t)p + total > PE_REACH) {
             ERR("dirk: no ring the PE side can reach\n");
             if (p != MAP_FAILED)
                 munmap(p, total);
