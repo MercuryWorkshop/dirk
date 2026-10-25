@@ -111,6 +111,25 @@ dirk_lower_push_constants(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    return true;
 }
 
+/* DXVK makes discard a demote (SPV_EXT_demote_to_helper_invocation), which
+ * Tint does not take. WGSL's discard is itself a demote -- the invocation
+ * stays as a helper, so derivatives keep working -- and it is what a
+ * terminate (OpKill) becomes there, so the semantics are kept. */
+static bool
+dirk_lower_demote(nir_builder *b, nir_intrinsic_instr *intr, void *data)
+{
+   (void)data;
+   if (intr->intrinsic != nir_intrinsic_demote && intr->intrinsic != nir_intrinsic_demote_if)
+      return false;
+   b->cursor = nir_before_instr(&intr->instr);
+   if (intr->intrinsic == nir_intrinsic_demote)
+      nir_terminate(b);
+   else
+      nir_terminate_if(b, intr->src[0].ssa);
+   nir_instr_remove(&intr->instr);
+   return true;
+}
+
 static bool
 dirk_shader_has_push_constants(nir_shader *nir)
 {
@@ -486,6 +505,10 @@ dirk_nir_compile(struct pipe_context *pipe, enum dirk_stage dstage,
       NIR_PASS(_, nir, nir_shader_intrinsics_pass, dirk_lower_push_constants,
                nir_metadata_control_flow, &s);
    }
+
+   if (stage == MESA_SHADER_FRAGMENT)
+      NIR_PASS(_, nir, nir_shader_intrinsics_pass, dirk_lower_demote,
+               nir_metadata_control_flow, NULL);
 
    dirk_lower_units(nir, &s);
    dirk_lower_images(nir, &s);
