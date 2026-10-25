@@ -13,6 +13,7 @@
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
+#include "util/u_simple_shaders.h"
 #include "util/format/u_format.h"
 #include "cso_cache/cso_context.h"
 
@@ -490,8 +491,17 @@ namespace dxvk {
   DxvkDevice::~DxvkDevice() {
     if (m_cso)
       cso_destroy_context(m_cso);
+    if (m_emptyFs)
+      m_pipe->delete_fs_state(m_pipe, m_emptyFs);
     if (m_pipe)
       m_pipe->destroy(m_pipe);
+  }
+
+
+  void* DxvkDevice::emptyFragmentShader() {
+    if (!m_emptyFs)
+      m_emptyFs = util_make_empty_fragment_shader(m_pipe);
+    return m_emptyFs;
   }
 
 

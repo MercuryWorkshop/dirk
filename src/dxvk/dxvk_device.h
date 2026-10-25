@@ -293,6 +293,15 @@ namespace dxvk {
       return m_cso;
     }
 
+    /**
+     * \brief A fragment shader that writes nothing
+     *
+     * Bound when the application has no pixel shader. D3D11 allows a
+     * depth-only pass without one; gallium drivers expect a fragment
+     * shader in every graphics draw.
+     */
+    void* emptyFragmentShader();
+
     /** \brief Counts a presented frame */
     void endFrame() {
       m_frameId += 1u;
@@ -316,6 +325,7 @@ namespace dxvk {
     pipe_screen*                m_screen  = nullptr;
     pipe_context*               m_pipe    = nullptr;
     cso_context*                m_cso     = nullptr;
+    void*                       m_emptyFs = nullptr;
 
     DxvkContext*                m_context = nullptr;
 

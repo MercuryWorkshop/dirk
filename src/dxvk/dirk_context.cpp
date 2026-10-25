@@ -584,7 +584,10 @@ namespace dxvk {
 
     void* fs = m_fs != nullptr ? getPipeShader(m_fs, &info) : nullptr;
     m_gfxShaders[MESA_SHADER_FRAGMENT] = fs ? info : nullptr;
-    cso_set_fragment_shader_handle(m_cso, fs);
+    // No pixel shader: a depth-only pass. The empty shader has no
+    // resources, so the stage keeps no binding map.
+    cso_set_fragment_shader_handle(m_cso,
+      m_fs != nullptr ? fs : m_device->emptyFragmentShader());
 
     // The binding map of a stage is its shader's.
     m_dirtyStages |= VK_SHADER_STAGE_ALL_GRAPHICS;
