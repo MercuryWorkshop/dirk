@@ -4,8 +4,10 @@
  * creates and copies whose data sizes follow from a resource's desc, maps,
  * and the entry points.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "dirk_format.h"
 #include "dirk_guest.h"
@@ -102,10 +104,38 @@ void dirk_windows_check(void)
         s.transport.window(s.transport.ctx, seen[i]);
 }
 
+int dirk_trace_on;
+
 void dirk_guest_init(const struct dirk_transport *transport)
 {
+    const char *t = getenv("DIRK_WIRE_TRACE");
     s.transport = *transport;
     s.debug = getenv("DIRK_WIRE_DEBUG") != NULL;
+    dirk_trace_on = t && *t && strcmp(t, "0");
+}
+
+void dirk_trace(const char *fmt, ...)
+{
+    va_list ap;
+    if (!dirk_trace_on)
+        return;
+    va_start(ap, fmt);
+    fputs("dirk: ", stderr);
+    vfprintf(stderr, fmt, ap);
+    fputc('\n', stderr);
+    va_end(ap);
+}
+
+void dirk_trace_first(const char *method)
+{
+    dirk_trace("first %s", method);
+}
+
+static void trace_guid(const char *what, const GUID *g)
+{
+    dirk_trace("%s {%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}", what, (unsigned long)g->Data1,
+               g->Data2, g->Data3, g->Data4[0], g->Data4[1], g->Data4[2], g->Data4[3], g->Data4[4],
+               g->Data4[5], g->Data4[6], g->Data4[7]);
 }
 
 static int send_held(int wait, const uint8_t **reply)
@@ -367,8 +397,11 @@ HRESULT STDMETHODCALLTYPE dirk_g_IUnknown_QueryInterface(IUnknown *This, REFIID 
         *out = This;
         return S_OK;
     }
-    if (iface < 0)
+    if (iface < 0) {
+        if (dirk_trace_on)
+            trace_guid("QueryInterface for an interface not carried", riid);
         return E_NOINTERFACE;
+    }
     uint8_t *w = dirk_begin(self, DIRK_OP_QUERY_INTERFACE, DIRK_REC_HEADER + 16, 1);
     if (!w)
         return DXGI_ERROR_DEVICE_REMOVED;
@@ -505,7 +538,7 @@ uint8_t *dirk_put_handles(uint8_t *w, void *const *objects, size_t count)
 void dirk_unsupported(void *self, const char *method)
 {
     (void)self;
-    if (s.debug)
+    if (s.debug || dirk_trace_on)
         fprintf(stderr, "dirk: %s is not supported\n", method);
 }
 
@@ -959,6 +992,13 @@ HRESULT WINAPI dirk_D3D11CreateDevice(IDXGIAdapter *adapter, D3D_DRIVER_TYPE dri
         *device = (ID3D11Device *)dev;
     if (context)
         *context = (ID3D11DeviceContext *)ctx;
+    if (dirk_trace_on) {
+        char asked[96] = "";
+        for (UINT i = 0; i < levels && strlen(asked) < sizeof(asked) - 8; i++)
+            sprintf(asked + strlen(asked), " %x", (unsigned)feature_levels[i]);
+        dirk_trace("D3D11CreateDevice driver %u flags 0x%x levels%s -> 0x%08x level %x", (unsigned)driver_type,
+                   flags, asked, (unsigned)hr, (unsigned)level);
+    }
     return hr;
 }
 

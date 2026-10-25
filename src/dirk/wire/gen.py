@@ -56,6 +56,22 @@ WINDOW = {
 # looked at again first (dirk_windows_check).
 WINDOW_CHECK = {'IDXGISwapChain.Present', 'IDXGISwapChain1.Present1', 'IDXGISwapChain.ResizeBuffers',
                 'IDXGISwapChain3.ResizeBuffers1'}
+# DIRK_WIRE_TRACE: the capability checks, logged with their answers after
+# the call (a printf format and its arguments).
+TRACE = {
+    'ID3D11Device.CheckFeatureSupport': ('CheckFeatureSupport %u size %u -> 0x%08x first word 0x%x',
+        '(unsigned)Feature, FeatureSupportDataSize, (unsigned)result, '
+        '(pFeatureSupportData && FeatureSupportDataSize >= 4) ? *(const uint32_t *)pFeatureSupportData : 0u'),
+    'ID3D11Device.CheckFormatSupport': ('CheckFormatSupport %u -> 0x%08x 0x%x',
+        '(unsigned)Format, (unsigned)result, pFormatSupport ? *pFormatSupport : 0u'),
+    'ID3D11Device.CheckMultisampleQualityLevels': ('CheckMultisampleQualityLevels %u x%u -> 0x%08x %u',
+        '(unsigned)Format, SampleCount, (unsigned)result, pNumQualityLevels ? *pNumQualityLevels : 0u'),
+    'ID3D11Device.GetFeatureLevel': ('GetFeatureLevel -> %x', '(unsigned)result'),
+    'IDXGIFactory1.EnumAdapters1': ('EnumAdapters1 %u -> 0x%08x', 'Adapter, (unsigned)result'),
+    'IDXGIFactory.EnumAdapters': ('EnumAdapters %u -> 0x%08x', 'adapter_idx, (unsigned)result'),
+    'IDXGIAdapter.CheckInterfaceSupport': ('CheckInterfaceSupport -> 0x%08x', '(unsigned)result'),
+}
+
 FLUSH = {'IDXGISwapChain.Present', 'IDXGISwapChain1.Present1', 'ID3D11DeviceContext.Flush'}
 
 # Returns E_NOTIMPL (or nothing) without asking the host.
@@ -482,7 +498,7 @@ class Writer:
         if mode == 'unsupported':
             for p in m.params:
                 L.append(f'    (void){p.name};')
-            L.append(f'    dirk_unsupported(This, "{key}");')
+            L.append(f'    {{ static int seen_; if (!seen_) {{ seen_ = 1; dirk_unsupported(This, "{key}"); }} }}')
             if m.ret == 'HRESULT':
                 L.append('    return E_NOTIMPL;')
             elif m.ret != 'void':
@@ -495,6 +511,7 @@ class Writer:
         if key in WINDOW_CHECK:
             L.append('    dirk_windows_check();')
         L.append('    struct dirk_proxy *self = dirk_proxy_of(This);')
+        L.append(f'    {{ static int seen_; if (dirk_trace_on && !seen_) {{ seen_ = 1; dirk_trace_first("{key}"); }} }}')
         size = ' + '.join(['DIRK_REC_HEADER'] + [put_size(k, info, p.name) for p, k, info in params])
         L.append(f'    size_t size = {size};')
         news = [(p, info) for p, k, info in params if k == 'new']
@@ -599,6 +616,8 @@ class Writer:
             elif k == 'new_riid':
                 L.append(f'    r = dirk_get_riid_handle(r, self, {riid}, {n});')
         L.append('    dirk_reply_done(self);')
+        if key in TRACE:
+            L.append(f'    if (dirk_trace_on) dirk_trace("{TRACE[key][0]}", {TRACE[key][1]});')
         if ret != 'void':
             L.append('    return result;')
         L.append('}')

@@ -123,6 +123,12 @@ static inline uint32_t dirk_handle_of(void *com)
 
 void dirk_unsupported(void *self, const char *method);
 
+/* DIRK_WIRE_TRACE=1 (off by default): each method's first call, and the
+ * capability checks with their answers, to stderr. */
+extern int dirk_trace_on;
+void dirk_trace_first(const char *method);
+void dirk_trace(const char *fmt, ...);
+
 uint8_t *dirk_put_string(uint8_t *w, const void *s, int char_size);
 size_t dirk_wire_string_size(const void *s, int char_size);
 const uint8_t *dirk_skip_string(const uint8_t *r);

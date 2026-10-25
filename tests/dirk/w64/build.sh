@@ -18,6 +18,9 @@ HERE=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 D=$(CDPATH='' cd -- "$HERE/../../../src/dirk" && pwd -P)
 : "${GEX_WASM64_SYSROOT:?set GEX_WASM64_SYSROOT}"
 WCC=$G/tools/wine-wasm/wcc64
+# A tree of the memory64 flavour (configured with wcc64 -mgex-memory64): the
+# shim is compiled for it too.
+grep -q '^CC *=.*-mgex-memory64' "$B/Makefile" && WCC="$WCC -mgex-memory64"
 tools=$(grep -m1 -o '[^ ]*/tools/winebuild/winebuild' "$B/Makefile")
 tools=${tools%/winebuild/winebuild}
 CFLAGS=(-O2 -fPIC -fvisibility=hidden -fno-strict-aliasing -D_WIN32 -D_UCRT -fno-builtin -fshort-wchar
@@ -27,7 +30,7 @@ trap 'rm -rf "$tmp"' EXIT
 objs=()
 for c in "$D/pe/d3d11_main.c" "$D/pe/guid.c" "$D/wire/dirk_guest.c" "$D/wire/gen/dirk_wire_guest.c"; do
     o=$tmp/$(basename "$c" .c).o
-    "$WCC" "${CFLAGS[@]}" -c -o "$o" "$c" &
+    $WCC "${CFLAGS[@]}" -c -o "$o" "$c" &
     objs+=("$o")
 done
 wait
