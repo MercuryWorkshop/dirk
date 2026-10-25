@@ -510,6 +510,15 @@ namespace dxvk {
    * Spawns a thread that will execute
    * commands on a DXVK context. 
    */
+  /**
+   * \brief Command stream executor
+   *
+   * dirk runs a chunk as soon as it is dispatched, on the thread that
+   * dispatches it: the gallium context, like the WebGPU device under it,
+   * belongs to one thread, and the front end runs there. The interface is
+   * DXVK's, so a worker of its own can come back without the front end
+   * noticing.
+   */
   class DxvkCsThread {
 
   public:
@@ -520,91 +529,26 @@ namespace dxvk {
       const Rc<DxvkDevice>&   device,
       const Rc<DxvkContext>&  context);
     ~DxvkCsThread();
-    
-    /**
-     * \brief Dispatches an entire chunk
-     * 
-     * Can be used to efficiently play back large
-     * command lists recorded on another thread.
-     * \param [in] chunk The chunk to dispatch
-     * \returns Sequence number of the submission
-     */
+
     uint64_t dispatchChunk(DxvkCsChunkRef&& chunk);
 
-    /**
-     * \brief Injects chunk into the command stream
-     *
-     * This is meant to be used when serialized execution is required
-     * from a thread other than the main thread recording rendering
-     * commands. The context can still be safely accessed, but chunks
-     * will not be executed in any particular oder. These chunks also
-     * do not contribute to the main timeline.
-     * \param [in] queue Which queue to add the chunk to
-     * \param [in] chunk The chunk to dispatch
-     * \param [in] synchronize Whether to wait for execution to complete
-     */
     void injectChunk(
             DxvkCsQueue       queue,
             DxvkCsChunkRef&&  chunk,
             bool              synchronize);
 
-    /**
-     * \brief Synchronizes with the thread
-     * 
-     * This waits for all chunks in the dispatch queue to
-     * be processed by the thread, up to the given sequence
-     * number. If the sequence number is 0, this will wait
-     * for all pending chunks to complete execution.
-     * \param [in] seq Sequence number to wait for.
-     */
-    void synchronize(uint64_t seq);
-    
-    /**
-     * \brief Retrieves last executed sequence number
-     *
-     * Can be used to avoid synchronization in some cases.
-     * \returns Sequence number of last executed chunk
-     */
+    void synchronize(uint64_t seq) { }
+
     uint64_t lastSequenceNumber() const {
-      return m_seqOrdered.load(std::memory_order_acquire);
+      return m_seq;
     }
 
   private:
 
     Rc<DxvkDevice>              m_device;
     Rc<DxvkContext>             m_context;
+    uint64_t                    m_seq = 0u;
 
-    alignas(CACHE_LINE_SIZE)
-    dxvk::mutex                 m_counterMutex;
-
-    std::atomic<uint64_t>       m_seqHighPrio = { 0u };
-    std::atomic<uint64_t>       m_seqOrdered  = { 0u };
-
-    std::atomic<bool>           m_stopped     = { false };
-    std::atomic<bool>           m_hasHighPrio = { false };
-
-    alignas(CACHE_LINE_SIZE)
-    dxvk::mutex                 m_mutex;
-    dxvk::condition_variable    m_condOnAdd;
-    dxvk::condition_variable    m_condOnSync;
-
-    DxvkCsChunkQueue            m_queueOrdered;
-    DxvkCsChunkQueue            m_queueHighPrio;
-
-    dxvk::thread                m_thread;
-
-    auto& getQueue(DxvkCsQueue which) {
-      return which == DxvkCsQueue::Ordered
-        ? m_queueOrdered : m_queueHighPrio;
-    }
-
-    auto& getCounter(DxvkCsQueue which) {
-      return which == DxvkCsQueue::Ordered
-        ? m_seqOrdered : m_seqHighPrio;
-    }
-
-    void threadFunc();
-    
   };
 
 }

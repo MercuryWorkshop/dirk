@@ -324,7 +324,20 @@ namespace dxvk {
       if (resourceDim != D3D11_RESOURCE_DIMENSION_BUFFER) {
         D3D10DeviceLock lock = LockContext();
         UnmapImage(GetCommonTexture(pResource), Subresource);
+        return;
       }
+    }
+
+    // The GPU reads a buffer from its own copy: what the host wrote through
+    // the map is uploaded before the next command that reads it.
+    auto buffer = static_cast<D3D11Buffer*>(pResource);
+    if (buffer->Desc()->CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) {
+      D3D10DeviceLock lock = LockContext();
+      EmitCs([
+        cBuffer = buffer->GetBuffer()
+      ] (DxvkContext* ctx) {
+        ctx->markHostWritten(cBuffer, 0, cBuffer->info().size);
+      });
     }
   }
 

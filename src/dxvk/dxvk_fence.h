@@ -1,7 +1,11 @@
 #pragma once
 
+// dirk: a timeline fence is a host counter. The context sets it when the
+// batch that signals it is flushed (the WebGPU queue keeps order from then
+// on); a wait for a value the GPU has not reached runs its callback then.
+
+#include <atomic>
 #include <functional>
-#include <queue>
 #include <utility>
 #include <vector>
 
@@ -12,121 +16,78 @@
 namespace dxvk {
 
   class DxvkDevice;
-  class DxvkFence;
 
-  using DxvkFenceEvent = std::function<void ()>;
-
-  /**
-   * \brief Fence create info
-   */
   struct DxvkFenceCreateInfo {
     uint64_t        initialValue;
     VkExternalSemaphoreHandleTypeFlagBits sharedType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_FLAG_BITS_MAX_ENUM;
     union {
-      // When we want to implement this on non-Windows platforms,
-      // we could add a `int fd` here, etc.
       HANDLE          sharedHandle = INVALID_HANDLE_VALUE;
     };
   };
 
-  /**
-   * \brief Fence-value pair
-   */
-  struct DxvkFenceValuePair {
-    DxvkFenceValuePair() { }
-    DxvkFenceValuePair(Rc<DxvkFence>&& fence_, uint64_t value_)
-    : fence(std::move(fence_)), value(value_) { }
-    DxvkFenceValuePair(const Rc<DxvkFence>& fence_, uint64_t value_)
-    : fence(fence_), value(value_) { }
-
-    Rc<DxvkFence> fence;
-    uint64_t value;
-  };
-
-  /**
-   * \brief Fence
-   *
-   * Wrapper around Vulkan timeline semaphores that
-   * can signal an event when the value changes.
-   */
   class DxvkFence : public RcObject {
 
   public:
 
     DxvkFence(
             DxvkDevice*           device,
-      const DxvkFenceCreateInfo&  info);
+      const DxvkFenceCreateInfo&  info)
+    : m_info(info), m_value(info.initialValue) { }
 
-    ~DxvkFence();
-
-    /**
-     * \brief Semaphore handle
-     */
-    VkSemaphore handle() const {
-      return m_semaphore;
+    uint64_t getValue() {
+      return m_value.load(std::memory_order_acquire);
     }
 
-    /**
-     * \brief Retrieves current semaphore value
-     * \returns Current semaphore value
-     */
-    uint64_t getValue();
+    /** \brief Runs \c event once the fence reaches \c value */
+    void enqueueWait(uint64_t value, std::function<void ()>&& event) {
+      std::unique_lock lock(m_mutex);
+      if (value <= m_value.load(std::memory_order_acquire)) {
+        lock.unlock();
+        event();
+        return;
+      }
+      m_waits.emplace_back(value, std::move(event));
+    }
 
-    /**
-     * \brief Enqueues semaphore wait
-     *
-     * Signals the given event when the
-     * semaphore reaches the given value.
-     * \param [in] value Enqueue value
-     * \param [in] event Callback
-     */
-    void enqueueWait(uint64_t value, DxvkFenceEvent&& event);
+    void wait(uint64_t value) {
+      std::unique_lock lock(m_mutex);
+      m_cond.wait(lock, [this, value] {
+        return m_value.load(std::memory_order_acquire) >= value;
+      });
+    }
 
-    /**
-     * \brief Create a new shared handle to timeline semaphore backing the fence
-     * \returns The shared handle with the type given by DxvkFenceCreateInfo::sharedType
-     */
-    HANDLE sharedHandle() const;
+    /** \brief Sets the value, on the device's thread after a flush */
+    void signal(uint64_t value) {
+      std::vector<std::function<void ()>> ready;
+      { std::unique_lock lock(m_mutex);
+        m_value.store(value, std::memory_order_release);
+        for (size_t i = 0; i < m_waits.size(); ) {
+          if (m_waits[i].first <= value) {
+            ready.push_back(std::move(m_waits[i].second));
+            m_waits[i] = std::move(m_waits.back());
+            m_waits.pop_back();
+          } else {
+            i++;
+          }
+        }
+      }
+      m_cond.notify_all();
+      for (auto& e : ready)
+        e();
+    }
 
-    /*
-     * \brief Waits for the given value
-     *
-     * Blocks the calling thread until
-     * the fence reaches the given value.
-     * \param [in] value Value to wait for
-    */
-    void wait(uint64_t value);
+    HANDLE sharedHandle() const {
+      return INVALID_HANDLE_VALUE;
+    }
 
   private:
 
-    struct QueueItem {
-      QueueItem() { }
-      QueueItem(uint64_t v, DxvkFenceEvent&& e)
-      : value(v), event(std::move(e)) { }
+    DxvkFenceCreateInfo     m_info;
+    std::atomic<uint64_t>   m_value;
 
-      uint64_t        value;
-      DxvkFenceEvent  event;
-
-      bool operator == (const QueueItem& item) const { return value == item.value; }
-      bool operator != (const QueueItem& item) const { return value != item.value; }
-      bool operator <  (const QueueItem& item) const { return value <  item.value; }
-      bool operator <= (const QueueItem& item) const { return value <= item.value; }
-      bool operator >  (const QueueItem& item) const { return value >  item.value; }
-      bool operator >= (const QueueItem& item) const { return value >= item.value; }
-    };
-
-    Rc<vk::DeviceFn>                m_vkd;
-    DxvkFenceCreateInfo             m_info;
-    VkSemaphore                     m_semaphore;
-
-    std::priority_queue<QueueItem>  m_queue;
-    bool                            m_running    = false;
-
-    dxvk::mutex                     m_mutex;
-    dxvk::condition_variable        m_condVar;
-    dxvk::thread                    m_thread;
-
-    void run();
+    dxvk::mutex             m_mutex;
+    dxvk::condition_variable m_cond;
+    std::vector<std::pair<uint64_t, std::function<void ()>>> m_waits;
 
   };
 

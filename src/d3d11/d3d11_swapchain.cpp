@@ -2,7 +2,6 @@
 #include "d3d11_device.h"
 #include "d3d11_swapchain.h"
 
-#include "../dxvk/dxvk_latency_builtin.h"
 
 #include "../util/util_win32_compat.h"
 
@@ -25,36 +24,6 @@ namespace dxvk {
     }
   }
 
-  static VkXYColorEXT ConvertXYColor(const UINT16 (&dxgiColor)[2]) {
-    return VkXYColorEXT{ float(dxgiColor[0]) / 50000.0f, float(dxgiColor[1]) / 50000.0f };
-  }
-
-  static float ConvertMaxLuminance(UINT dxgiLuminance) {
-    return float(dxgiLuminance);
-  }
-
-  static float ConvertMinLuminance(UINT dxgiLuminance) {
-    return float(dxgiLuminance) * 0.0001f;
-  }
-
-  static float ConvertLevel(UINT16 dxgiLevel) {
-    return float(dxgiLevel);
-  }
-
-  static VkHdrMetadataEXT ConvertHDRMetadata(const DXGI_HDR_METADATA_HDR10& dxgiMetadata) {
-    VkHdrMetadataEXT vkMetadata = { VK_STRUCTURE_TYPE_HDR_METADATA_EXT };
-    vkMetadata.displayPrimaryRed         = ConvertXYColor(dxgiMetadata.RedPrimary);
-    vkMetadata.displayPrimaryGreen       = ConvertXYColor(dxgiMetadata.GreenPrimary);
-    vkMetadata.displayPrimaryBlue        = ConvertXYColor(dxgiMetadata.BluePrimary);
-    vkMetadata.whitePoint                = ConvertXYColor(dxgiMetadata.WhitePoint);
-    vkMetadata.maxLuminance              = ConvertMaxLuminance(dxgiMetadata.MaxMasteringLuminance);
-    vkMetadata.minLuminance              = ConvertMinLuminance(dxgiMetadata.MinMasteringLuminance);
-    vkMetadata.maxContentLightLevel      = ConvertLevel(dxgiMetadata.MaxContentLightLevel);
-    vkMetadata.maxFrameAverageLightLevel = ConvertLevel(dxgiMetadata.MaxFrameAverageLightLevel);
-    return vkMetadata;
-  }
-
-
   D3D11SwapChain::D3D11SwapChain(
           D3D11DXGIDevice*        pContainer,
           D3D11Device*            pDevice,
@@ -69,7 +38,6 @@ namespace dxvk {
     CreateFrameLatencyEvent();
     CreatePresenter();
     CreateBackBuffers();
-    CreateBlitter();
   }
 
 
@@ -79,8 +47,6 @@ namespace dxvk {
     if (this_thread::isInModuleDetachment())
       return;
 
-    m_presenter->destroyResources();
-    
     DestroyFrameLatencyEvent();
     DestroyLatencyTracker();
   }
@@ -175,12 +141,6 @@ namespace dxvk {
     const DXGI_SWAP_CHAIN_DESC1*    pDesc,
     const UINT*                     pNodeMasks,
           IUnknown* const*          ppPresentQueues) {
-    if (m_desc.Format != pDesc->Format)
-      m_presenter->setSurfaceFormat(GetSurfaceFormat(pDesc->Format));
-
-    if (m_desc.Width != pDesc->Width || m_desc.Height != pDesc->Height)
-      m_presenter->setSurfaceExtent({ m_desc.Width, m_desc.Height });
-
     m_desc = *pDesc;
     CreateBackBuffers();
     return S_OK;
@@ -197,33 +157,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::SetGammaControl(
           UINT                      NumControlPoints,
     const DXGI_RGB*                 pControlPoints) {
-    bool isIdentity = true;
-
-    if (NumControlPoints > 1) {
-      std::array<DxvkGammaCp, 1025> cp;
-
-      if (NumControlPoints > cp.size())
-        return E_INVALIDARG;
-      
-      for (uint32_t i = 0; i < NumControlPoints; i++) {
-        uint16_t identity = MapGammaControlPoint(float(i) / float(NumControlPoints - 1));
-
-        cp[i].r = MapGammaControlPoint(pControlPoints[i].Red);
-        cp[i].g = MapGammaControlPoint(pControlPoints[i].Green);
-        cp[i].b = MapGammaControlPoint(pControlPoints[i].Blue);
-        cp[i].a = 0;
-
-        isIdentity &= cp[i].r == identity
-                   && cp[i].g == identity
-                   && cp[i].b == identity;
-      }
-
-      if (!isIdentity)
-        m_blitter->setGammaRamp(NumControlPoints, cp.data());
-    }
-
-    if (isIdentity)
-      m_blitter->setGammaRamp(0, nullptr);
+    // The host's surface has no gamma ramp; an identity is what it shows.
+    if (NumControlPoints > 1025)
+      return E_INVALIDARG;
 
     return S_OK;
   }
@@ -261,8 +197,7 @@ namespace dxvk {
       if (hr != S_OK)
         return hr;
 
-      VkResult status = m_presenter->checkSwapChainStatus();
-      return status == VK_SUCCESS ? S_OK : DXGI_STATUS_OCCLUDED;
+      return S_OK;
     }
 
     if (hr != S_OK) {
@@ -291,9 +226,6 @@ namespace dxvk {
       m_latency->sleepAndBeginFrame(m_frameId + 1, std::abs(m_targetFrameRate));
     }
 
-    if (m_latencyHud)
-      m_latencyHud->accumulateStats(latencyStats);
-
     return hr;
   }
 
@@ -304,7 +236,8 @@ namespace dxvk {
 
     VkColorSpaceKHR vkColorSpace = ConvertColorSpace(ColorSpace);
 
-    if (m_presenter->supportsColorSpace(vkColorSpace))
+    // The host's surface is sRGB.
+    if (vkColorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
       supportFlags |= DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT;
 
     return supportFlags;
@@ -315,12 +248,10 @@ namespace dxvk {
           DXGI_COLOR_SPACE_TYPE     ColorSpace) {
     VkColorSpaceKHR colorSpace = ConvertColorSpace(ColorSpace);
 
-    if (!m_presenter->supportsColorSpace(colorSpace))
+    if (colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
       return E_INVALIDARG;
 
     m_colorSpace = colorSpace;
-
-    m_presenter->setSurfaceFormat(GetSurfaceFormat(m_desc.Format));
     return S_OK;
   }
 
@@ -328,9 +259,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::SetHDRMetaData(
     const DXGI_VK_HDR_METADATA*     pMetaData) {
     // For some reason this call always seems to succeed on Windows
-    if (pMetaData->Type == DXGI_HDR_METADATA_TYPE_HDR10)
-      m_presenter->setHdrMetadata(ConvertHDRMetadata(pMetaData->HDR10));
-
     return S_OK;
   }
 
@@ -351,9 +279,6 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11SwapChain::SetTargetFrameRate(
           double                    FrameRate) {
     m_targetFrameRate = FrameRate;
-
-    if (m_presenter != nullptr)
-      m_presenter->setFrameRateLimit(m_targetFrameRate, GetActualFrameLatency());
   }
 
 
@@ -375,99 +300,34 @@ namespace dxvk {
 
 
   HRESULT D3D11SwapChain::PresentImage(UINT SyncInterval) {
-    // Flush pending rendering commands before
     auto immediateContext = m_parent->GetContext();
     auto immediateContextLock = immediateContext->LockContext();
 
     immediateContext->EndFrame(m_latency);
     immediateContext->ExecuteFlush(GpuFlushType::ExplicitFlush, nullptr, true);
 
-    m_presenter->setSyncInterval(SyncInterval);
-
-    // Presentation semaphores and WSI swap chain image
-    if (m_latency)
-      m_latency->notifyCpuPresentBegin(m_frameId + 1u);
-
-    PresenterSync sync;
-    Rc<DxvkImage> backBuffer;
-
-    VkResult status = m_presenter->acquireNextImage(sync, backBuffer);
-
-    if (status != VK_SUCCESS && m_latency)
-      m_latency->discardTimings();
-
-    if (status < 0)
-      return E_FAIL;
-
-    if (status == VK_NOT_READY)
-      return DXGI_STATUS_OCCLUDED;
-
     m_frameId += 1;
 
-    // Present from CS thread so that we don't
-    // have to synchronize with it first.
-    DxvkImageViewKey viewInfo = { };
-    viewInfo.viewType   = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.usage      = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    viewInfo.format     = backBuffer->info().format;
-    viewInfo.aspects    = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.mipIndex   = 0u;
-    viewInfo.mipCount   = 1u;
-    viewInfo.layerIndex = 0u;
-    viewInfo.layerCount = 1u;
-
+    // The context copies the back buffer to the host's surface and hands
+    // it over; the WebGPU queue keeps that after the frame's work, so the
+    // frame is done as far as the latency signal is concerned.
     immediateContext->EmitCs([
-      cDevice         = m_device,
-      cBlitter        = m_blitter,
-      cBackBuffer     = backBuffer->createView(viewInfo),
-      cSwapImage      = GetBackBufferView(),
-      cSync           = sync,
-      cPresenter      = m_presenter,
-      cLatency        = m_latency,
-      cColorSpace     = m_colorSpace,
-      cFrameId        = m_frameId
+      cDevice       = m_device,
+      cSwapImage    = GetBackBufferView(),
+      cSurface      = m_surface,
+      cSync         = SyncInterval,
+      cSignal       = m_frameLatencySignal,
+      cFrameId      = m_frameId
     ] (DxvkContext* ctx) {
-      // Update back buffer color space as necessary
-      if (cSwapImage->image()->info().colorSpace != cColorSpace) {
-        DxvkImageUsageInfo usage = { };
-        usage.colorSpace = cColorSpace;
-
-        ctx->ensureImageCompatibility(cSwapImage->image(), usage);
-      }
-
-      // Blit the D3D back buffer onto the actual Vulkan
-      // swap chain and render the HUD if we have one.
-      auto contextObjects = ctx->beginExternalRendering();
-
-      cBlitter->present(contextObjects,
-        cBackBuffer, VkRect2D(),
-        cSwapImage, VkRect2D());
-
-      // Submit current command list and present
-      ctx->synchronizeWsi(cSync);
-      ctx->flushCommandList(nullptr, nullptr);
-
-      cDevice->presentImage(cPresenter, cLatency, cFrameId, nullptr);
+      ctx->presentImage(cSwapImage, cSurface, cSync);
+      cDevice->endFrame();
+      cSignal->signal(cFrameId);
     });
 
     if (m_backBuffers.size() > 1u)
       RotateBackBuffers(immediateContext);
 
     immediateContext->FlushCsChunk();
-
-    if (m_latency) {
-      m_latency->notifyCpuPresentEnd(m_frameId);
-
-      if (m_latency->needsAutoMarkers()) {
-        immediateContext->EmitCs([
-          cLatency = m_latency,
-          cFrameId = m_frameId
-        ] (DxvkContext* ctx) {
-          ctx->beginLatencyTracking(cLatency, cFrameId + 1u);
-        });
-      }
-    }
-
     return S_OK;
   }
 
@@ -500,26 +360,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreatePresenter() {
-    PresenterDesc presenterDesc = { };
-    presenterDesc.deferSurfaceCreation = m_parent->GetOptions()->deferSurfaceCreation;
-
-    m_presenter = new Presenter(m_device, m_frameLatencySignal, presenterDesc, [
-      cAdapter  = m_device->adapter(),
-      cFactory  = m_surfaceFactory
-    ] (VkSurfaceKHR* surface) {
-      return cFactory->CreateSurface(
-        cAdapter->vki()->instance(),
-        cAdapter->handle(), surface);
-    });
-
-    m_presenter->setSurfaceFormat(GetSurfaceFormat(m_desc.Format));
-    m_presenter->setSurfaceExtent({ m_desc.Width, m_desc.Height });
-    m_presenter->setFrameRateLimit(m_targetFrameRate, GetActualFrameLatency());
-
-    m_latency = m_device->createLatencyTracker(m_presenter);
-
-    Com<D3D11ReflexDevice> reflex = GetReflexDevice();
-    reflex->RegisterLatencyTracker(m_latency);
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    m_surfaceFactory->CreateSurface(VK_NULL_HANDLE, VK_NULL_HANDLE, &surface);
+    m_surface = reinterpret_cast<void*>(uintptr_t(surface));
   }
 
 
@@ -590,37 +433,12 @@ namespace dxvk {
   }
 
 
-  void D3D11SwapChain::CreateBlitter() {
-    Rc<hud::Hud> hud = hud::Hud::createHud(m_device);
-
-    if (hud) {
-      hud->addItem<hud::HudClientApiItem>("api", 1, GetApiName());
-
-      if (m_latency)
-        m_latencyHud = hud->addItem<hud::HudLatencyItem>("latency", 4);
-    }
-
-    m_blitter = new DxvkSwapchainBlitter(m_device, std::move(hud));
-  }
-
-
   void D3D11SwapChain::DestroyFrameLatencyEvent() {
     CloseHandle(m_frameLatencyEvent);
   }
 
 
-  void D3D11SwapChain::DestroyLatencyTracker() {
-    // Need to make sure the context stops using
-    // the tracker for submissions
-    m_parent->GetContext()->InjectCs(DxvkCsQueue::Ordered, [
-      cLatency = m_latency
-    ] (DxvkContext* ctx) {
-      ctx->endLatencyTracking(cLatency);
-    });
-
-    Com<D3D11ReflexDevice> reflex = GetReflexDevice();
-    reflex->UnregisterLatencyTracker(m_latency);
-  }
+  void D3D11SwapChain::DestroyLatencyTracker() { }
 
 
   void D3D11SwapChain::SyncFrameLatency() {
@@ -655,29 +473,6 @@ namespace dxvk {
 
     maxFrameLatency = std::min(maxFrameLatency, m_desc.BufferCount);
     return maxFrameLatency;
-  }
-
-
-  VkSurfaceFormatKHR D3D11SwapChain::GetSurfaceFormat(DXGI_FORMAT Format) {
-    switch (Format) {
-      default:
-        Logger::warn(str::format("D3D11SwapChain: Unexpected format: ", m_desc.Format));
-        [[fallthrough]];
-
-      case DXGI_FORMAT_R8G8B8A8_UNORM:
-      case DXGI_FORMAT_B8G8R8A8_UNORM:
-        return { VK_FORMAT_R8G8B8A8_UNORM, m_colorSpace };
-
-      case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-      case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-        return { VK_FORMAT_R8G8B8A8_SRGB, m_colorSpace };
-
-      case DXGI_FORMAT_R10G10B10A2_UNORM:
-        return { VK_FORMAT_A2B10G10R10_UNORM_PACK32, m_colorSpace };
-
-      case DXGI_FORMAT_R16G16B16A16_FLOAT:
-        return { VK_FORMAT_R16G16B16A16_SFLOAT, m_colorSpace };
-    }
   }
 
 

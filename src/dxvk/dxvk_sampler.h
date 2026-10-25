@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unordered_map>
+#include <atomic>
 
 #include "../util/util_bit.h"
 #include "../util/thread.h"
@@ -11,14 +11,7 @@
 namespace dxvk {
 
   class DxvkDevice;
-  class DxvkSamplerPool;
 
-  /**
-   * \brief Sampler key
-   *
-   * Stores packed sampler properties and in a way that
-   * can be reasonably efficiently used with a hash map.
-   */
   struct DxvkSamplerKey {
     union {
       struct {
@@ -127,50 +120,35 @@ namespace dxvk {
   };
 
   static_assert(sizeof(DxvkSamplerKey) == 24u);
-  
-  
+
+
   /**
    * \brief Sampler
-   * 
-   * Manages a sampler object that can be bound to
-   * a pipeline. Sampler objects provide parameters
-   * for texture lookups within a shader.
+   *
+   * Its key only: the context turns the key into a gallium sampler state
+   * at the draw, and gallium's CSO cache keeps one of each.
    */
   class DxvkSampler {
-    friend class DxvkSamplerPool;
+
   public:
-    
-    DxvkSampler(
-            DxvkSamplerPool*        pool,
-      const DxvkSamplerKey&         key);
 
-    ~DxvkSampler();
+    DxvkSampler(const DxvkSamplerKey& key)
+    : m_key(key) { }
 
-    /**
-     * \brief Increments reference count
-     */
+    /** \brief No Vulkan sampler: only extension paths the adapter lacks ask */
+    VkSampler handle() const {
+      return VK_NULL_HANDLE;
+    }
+
     force_inline void incRef() {
       m_refCount.fetch_add(1u, std::memory_order_acquire);
     }
 
-    /**
-     * \brief Decrements reference count
-     *
-     * Recycles the sampler once the ref count reaches zero.
-     */
     force_inline void decRef() {
-      if (m_refCount.fetch_sub(1u, std::memory_order_relaxed) == 1u)
-        release();
+      if (m_refCount.fetch_sub(1u, std::memory_order_release) == 1u)
+        delete this;
     }
 
-    /**
-     * \brief Updates tracking ID for sampler object
-     *
-     * Used when tracking submissions.
-     * \param [in] trackingID Tracking ID
-     * \returns \c true if the tracking ID has been updated,
-     *    \c false if the sampler was already tracked with this ID.
-     */
     bool trackId(uint64_t trackingId) {
       if (trackingId <= m_trackingId)
         return false;
@@ -179,112 +157,16 @@ namespace dxvk {
       return true;
     }
 
-    /**
-     * \brief Sampler handle
-     * \returns Sampler handle
-     */
-    VkSampler handle() const {
-      return m_sampler;
-    }
-    
-    /**
-     * \brief Sampler key
-     * \returns Sampler properties
-     */
     const DxvkSamplerKey& key() const {
       return m_key;
     }
 
   private:
-    
-    std::atomic<uint64_t> m_refCount  = { 0u };
+
+    std::atomic<uint64_t> m_refCount   = { 0u };
     uint64_t              m_trackingId = 0u;
-
-    DxvkSamplerPool*      m_pool      = nullptr;
-    DxvkSamplerKey        m_key       = { };
-
-    VkSampler             m_sampler   = VK_NULL_HANDLE;
-
-    DxvkSampler*          m_lruPrev   = nullptr;
-    DxvkSampler*          m_lruNext   = nullptr;
-
-    void release();
-
-    VkBorderColor determineBorderColorType() const;
+    DxvkSamplerKey        m_key        = { };
 
   };
-
-
-  /**
-   * \brief Sampler statistics
-   */
-  struct DxvkSamplerStats {
-    /// Number of sampler objects created
-    uint32_t totalCount = 0u;
-    /// Number of samplers currently in use
-    uint32_t liveCount = 0u;
-  };
-
-
-  /**
-   * \brief Sampler pool
-   *
-   * Manages unique samplers within a device.
-   */
-  class DxvkSamplerPool {
-    friend DxvkSampler;
-  public:
-
-    // Lower limit for sampler counts in Vulkan.
-    constexpr static uint32_t MaxSamplerCount = 4000u;
-
-    // Minimum number of samplers to keep alive.
-    constexpr static uint32_t MinSamplerCount = 1024u;
-
-    DxvkSamplerPool(DxvkDevice* device);
-
-    ~DxvkSamplerPool();
-
-    /**
-     * \brief Creates sampler
-     *
-     * \param [in] key Sampler key
-     * \returns Sampler object
-     */
-    Rc<DxvkSampler> createSampler(const DxvkSamplerKey& key);
-
-    /**
-     * \brief Retrieves sampler statistics
-     *
-     * Note that these might be out of date immediately.
-     * \returns Sampler counts
-     */
-    DxvkSamplerStats getStats() const {
-      DxvkSamplerStats stats = { };
-      stats.totalCount = m_samplersTotal.load();
-      stats.liveCount = m_samplersLive.load();
-      return stats;
-    }
-
-  private:
-
-    DxvkDevice* m_device;
-
-    dxvk::mutex m_mutex;
-    std::unordered_map<DxvkSamplerKey,
-      DxvkSampler, DxvkHash, DxvkEq> m_samplers;
-
-    DxvkSampler* m_lruHead = nullptr;
-    DxvkSampler* m_lruTail = nullptr;
-
-    std::atomic<uint32_t> m_samplersLive = { 0u };
-    std::atomic<uint32_t> m_samplersTotal = { 0u };
-
-    void releaseSampler(DxvkSampler* sampler);
-
-    void destroyLeastRecentlyUsedSampler();
-
-  };
-
 
 }

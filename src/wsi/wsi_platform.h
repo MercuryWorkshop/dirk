@@ -115,6 +115,10 @@ namespace dxvk::wsi {
   extern WsiBootstrap GlfwWSI;
 #endif
 
+#if defined(DXVK_WSI_DIRK)
+  extern WsiBootstrap DirkWSI;
+#endif
+
   void init();
   void quit();
   std::vector<const char *> getInstanceExtensions();

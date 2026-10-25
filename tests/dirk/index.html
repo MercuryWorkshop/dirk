@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<meta charset="utf-8">
+<title>dirk cube</title>
+<canvas id="canvas" width="256" height="192"></canvas>
+<script type="module">
+  const log = [];
+  globalThis.__winkResult = null;
+  try {
+    const { default: create } = await import('./d3d11cube.js');
+    const Module = await create({
+      print: (s) => { log.push(s); console.log(s); },
+      printErr: (s) => { log.push(s); console.warn(s); },
+      canvas: document.getElementById('canvas'),
+      winkEnv: new URLSearchParams(location.search).getAll('env'),
+    });
+    const main = WebAssembly.promising(Module.dirkCubeRaw);
+    const rc = await main();
+    globalThis.__winkResult = { pass: rc === 0, rc, log };
+  } catch (e) {
+    log.push('exception: ' + (e && e.stack || e));
+    console.error('exception: ' + (e && e.stack || e));
+    globalThis.__winkResult = { pass: false, rc: -1, log };
+  }
+</script>

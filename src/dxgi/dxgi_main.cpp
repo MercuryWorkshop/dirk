@@ -3,7 +3,10 @@
 
 namespace dxvk {
   
+  // dirk links DXGI into one module with D3D11, whose logger it shares.
+#ifndef DXVK_WSI_DIRK
   Logger Logger::s_instance("dxgi.log");
+#endif
   
   HRESULT createDxgiFactory(UINT Flags, REFIID riid, void **ppFactory) {
     try {

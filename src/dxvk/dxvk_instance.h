@@ -1,17 +1,19 @@
 #pragma once
 
+// dirk: the instance has the one adapter of the gallium screen the host
+// registered (dirk_register_screen). It loads no Vulkan library: its
+// function tables resolve every name to null, for the few front-end paths
+// that look for an optional Vulkan extension.
+
 #include "../util/config/config.h"
 
 #include "dxvk_adapter.h"
-#include "dxvk_device_filter.h"
-#include "dxvk_extension_provider.h"
 #include "dxvk_options.h"
+
+struct pipe_screen;
 
 namespace dxvk {
 
-  /**
-   * \brief Vulkan instance creation parameters
-   */
   struct DxvkInstanceImportInfo {
     PFN_vkGetInstanceProcAddr loaderProc;
     VkInstance instance;
@@ -19,10 +21,6 @@ namespace dxvk {
     const char** extensionNames;
   };
 
-
-  /**
-   * \brief Debug flags
-   */
   enum class DxvkDebugFlag : uint32_t {
     Validation        = 0,
     Capture           = 1,
@@ -31,152 +29,69 @@ namespace dxvk {
 
   using DxvkDebugFlags = Flags<DxvkDebugFlag>;
 
-
-  /**
-   * \brief Instance creation flags
-   *
-   * These flags will be passed to the app version field of the Vulkan
-   * instance, so that drivers can adjust behaviour for some edge cases
-   * that are not implementable with Vulkan itself.
-   */
   enum class DxvkInstanceFlag : uint32_t {
-    /** Enforce D3D9 behaviour for texture coordinate snapping */
     ClientApiIsD3D9,
   };
 
   using DxvkInstanceFlags = Flags<DxvkInstanceFlag>;
 
-
-  /**
-   * \brief DXVK instance
-   * 
-   * Manages a Vulkan instance and stores a list
-   * of adapters. This also provides methods for
-   * device creation.
-   */
   class DxvkInstance : public RcObject {
-    
+
   public:
 
-    /**
-     * \brief Creates new Vulkan instance
-     * \param [in] flags Instance flags
-     */
     explicit DxvkInstance(DxvkInstanceFlags flags);
 
-    /**
-     * \brief Imports existing Vulkan instance
-     * \param [in] flags Instance flags
-     */
+    /** \brief Importing a Vulkan instance: there is none, so a plain one */
     explicit DxvkInstance(
       const DxvkInstanceImportInfo& args,
-            DxvkInstanceFlags       flags);
+            DxvkInstanceFlags       flags)
+    : DxvkInstance(flags) { }
 
     ~DxvkInstance();
-    
-    /**
-     * \brief Vulkan instance functions
-     * \returns Vulkan instance functions
-     */
+
     Rc<vk::InstanceFn> vki() const {
       return m_vki;
     }
-    
-    /**
-     * \brief Vulkan instance handle
-     * \returns The instance handle
-     */
+
     VkInstance handle() {
-      return m_vki->instance();
+      return VK_NULL_HANDLE;
     }
 
-     /**
-     * \brief Number of adapters
-     * 
-     * \returns The number of adapters
-     */
     size_t adapterCount() {
       return m_adapters.size();
     }
-    
-    /**
-     * \brief Retrieves an adapter
-     * 
-     * Note that the adapter does not hold
-     * a hard reference to the instance.
-     * \param [in] index Adapter index
-     * \returns The adapter, or \c nullptr.
-     */
+
     Rc<DxvkAdapter> enumAdapters(
-            uint32_t      index) const;
-    
-    /**
-     * \brief Finds adapter by LUID
-     * 
-     * \param [in] luid Pointer to LUID
-     * \returns Matching adapter, if any
-     */
+            uint32_t      index) const {
+      return index < m_adapters.size() ? m_adapters[index] : nullptr;
+    }
+
     Rc<DxvkAdapter> findAdapterByLuid(
       const void*         luid) const;
-    
-    /**
-     * \brief Finds adapter by device IDs
-     * 
-     * \param [in] vendorId Vendor ID
-     * \param [in] deviceId Device ID
-     * \returns Matching adapter, if any
-     */
+
     Rc<DxvkAdapter> findAdapterByDeviceId(
             uint16_t      vendorId,
             uint16_t      deviceId) const;
-    
-    /**
-     * \brief Retrieves configuration options
-     * 
-     * The configuration set contains user-defined
-     * options as well as app-specific options.
-     * \returns Configuration options
-     */
+
     const Config& config() const {
       return m_config;
     }
 
-    /**
-     * \brief DXVK options
-     * \returns DXVK options
-     */
     const DxvkOptions& options() const {
       return m_options;
     }
 
-    /**
-     * \brief Enabled instance extensions
-     * \returns Enabled instance extensions
-     */
     const DxvkInstanceExtensions& extensions() const {
       return m_extensions;
     }
 
-   /**
-    * \brief Instance extension name list
-    * 
-    * Returns the list of extensions that the
-    * instance was created with, provided by
-    * both DXVK and any extension providers.
-    * \returns Instance extension name list
-    */
-    const DxvkNameList& extensionNameList() const {
-      return m_extensionNames;
-    }
-
-    /**
-     * \brief Debug flags
-     * \returns Debug flags
-     */
     DxvkDebugFlags debugFlags() const {
       return m_debugFlags;
     }
-    
+
+    /** \brief A function table that resolves every name to null */
+    static PFN_vkGetInstanceProcAddr nullLoader();
+
   private:
 
     Config                  m_config;
@@ -185,39 +100,13 @@ namespace dxvk {
     Rc<vk::LibraryFn>       m_vkl;
     Rc<vk::InstanceFn>      m_vki;
     DxvkInstanceExtensions  m_extensions;
-    DxvkNameSet             m_extensionSet;
-    DxvkNameList            m_extensionNames;
     DxvkDebugFlags          m_debugFlags = 0u;
 
-    VkDebugUtilsMessengerEXT m_messenger = VK_NULL_HANDLE;
-
-    std::vector<DxvkExtensionProvider*> m_extProviders;
     std::vector<Rc<DxvkAdapter>> m_adapters;
-    
-    void createLibraryLoader(
-      const DxvkInstanceImportInfo& args);
-
-    void createInstanceLoader(
-      const DxvkInstanceImportInfo& args,
-            DxvkInstanceFlags       flags);
-
-    std::vector<DxvkExt*> getExtensionList(
-            DxvkInstanceExtensions& ext,
-            bool                    withDebug);
-
-    DxvkNameSet getExtensionSet(
-      const DxvkNameList& extensions);
-
-    std::vector<Rc<DxvkAdapter>> queryAdapters();
-    
-    static void logNameList(const DxvkNameList& names);
-
-    static VkBool32 VKAPI_CALL debugCallback(
-            VkDebugUtilsMessageSeverityFlagBitsEXT  messageSeverity,
-            VkDebugUtilsMessageTypeFlagsEXT         messageTypes,
-      const VkDebugUtilsMessengerCallbackDataEXT*   pCallbackData,
-            void*                                   pUserData);
 
   };
-  
+
 }
+
+/** \brief Sets the screen the next instance's adapter is made of */
+extern "C" void dirk_register_screen(struct pipe_screen* screen);

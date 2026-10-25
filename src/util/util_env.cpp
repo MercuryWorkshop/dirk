@@ -16,6 +16,10 @@
 
 #include "./com/com_include.h"
 
+#ifdef __EMSCRIPTEN__
+extern "C" const char* dirk_exe_path(void);
+#endif
+
 namespace dxvk::env {
 
   std::string getEnvVar(const char* name) {
@@ -104,6 +108,10 @@ namespace dxvk::env {
     }
 
     return std::string(exePath);
+#elif defined(__EMSCRIPTEN__)
+    // The program dirk serves, as its host names it (app profiles match it).
+    const char* path = dirk_exe_path();
+    return path ? std::string(path) : std::string();
 #endif
   }
   
@@ -124,7 +132,7 @@ namespace dxvk::env {
 
       SetThreadDescription(::GetCurrentThread(), wideName.data());
     }
-#else
+#elif !defined(__EMSCRIPTEN__)
     std::array<char, 16> posixName = {};
     dxvk::str::strlcpy(posixName.data(), name.c_str(), 16);
     ::pthread_setname_np(pthread_self(), posixName.data());
