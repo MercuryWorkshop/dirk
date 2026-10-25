@@ -36,6 +36,7 @@ extern "C" {
   struct dirk_transport {
     const uint8_t* (*send)(void* ctx, const uint8_t* records, size_t len, int wait);
     void* ctx;
+    void (*window)(void* ctx, uint64_t window);
   };
   void dirk_guest_init(const dirk_transport* transport);
   HRESULT dirk_D3D11CreateDeviceAndSwapChain(IDXGIAdapter*, D3D_DRIVER_TYPE, HMODULE, UINT,

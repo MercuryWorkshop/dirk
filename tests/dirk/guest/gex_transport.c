@@ -81,5 +81,6 @@ int dirk_gex_transport(struct dirk_transport *out)
     ring->protocol_version = D3D_PROTOCOL_VERSION;
     out->send = send_ring;
     out->ctx = NULL;
+    out->window = NULL;
     return 0;
 }

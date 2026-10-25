@@ -9,8 +9,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+/* A Windows program (W64's test): the D3D11 it links is the shim's. */
+#define COBJMACROS
+#include <windows.h>
+#include <d3d11.h>
+#define CreateDeviceAndSwapChain D3D11CreateDeviceAndSwapChain
+#else
 #include "dirk_guest.h"
 #include "gex_transport.h"
+#define CreateDeviceAndSwapChain dirk_D3D11CreateDeviceAndSwapChain
+#endif
 
 #include "tri_vs.h"
 #include "tri_ps.h"
@@ -21,7 +30,7 @@
 static int failures;
 #define CHECK(cond, ...) do { if (!(cond)) { failures++; printf("FAIL " __VA_ARGS__); printf("\n"); } } while (0)
 
-static int near(unsigned a, unsigned b)
+static int close_to(unsigned a, unsigned b)
 {
     for (int c = 0; c < 32; c += 8) {
         int d = (int)((a >> c) & 0xff) - (int)((b >> c) & 0xff);
@@ -33,12 +42,30 @@ static int near(unsigned a, unsigned b)
 
 int main(void)
 {
+#ifdef _WIN32
+    /* A window of its own, shown: its frames go to the window's surface. */
+    WNDCLASSA wc = { 0 };
+    RECT r = { 0, 0, W, H };
+    wc.lpfnWndProc = DefWindowProcA;
+    wc.hInstance = GetModuleHandleA(NULL);
+    wc.lpszClassName = "dirk_tri";
+    RegisterClassA(&wc);
+    AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
+    HWND window = CreateWindowA("dirk_tri", "dirk tri", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 0, 0,
+                                r.right - r.left, r.bottom - r.top, NULL, NULL, wc.hInstance, NULL);
+    if (!window) {
+        printf("FAIL CreateWindow\n");
+        return 1;
+    }
+#else
     struct dirk_transport transport;
     if (dirk_gex_transport(&transport) != 0)
         return 1;
     dirk_guest_init(&transport);
     /* A window with no surface: frames are drawn and read back, not shown. */
     dirk_guest_window_surface(1, 0, 0, W, H);
+    HWND window = (HWND)1;
+#endif
 
     DXGI_SWAP_CHAIN_DESC sd;
     memset(&sd, 0, sizeof(sd));
@@ -50,7 +77,7 @@ int main(void)
     sd.SampleDesc.Count = 1;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 2;
-    sd.OutputWindow = (HWND)1;
+    sd.OutputWindow = window;
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
@@ -58,8 +85,8 @@ int main(void)
     ID3D11DeviceContext *ctx = NULL;
     IDXGISwapChain *swapchain = NULL;
     D3D_FEATURE_LEVEL fl = D3D_FEATURE_LEVEL_11_0;
-    HRESULT hr = dirk_D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &fl, 1,
-                                                    D3D11_SDK_VERSION, &sd, &swapchain, &dev, NULL, &ctx);
+    HRESULT hr = CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &fl, 1,
+                                          D3D11_SDK_VERSION, &sd, &swapchain, &dev, NULL, &ctx);
     if (FAILED(hr)) {
         printf("FAIL D3D11CreateDeviceAndSwapChain: 0x%08x\n", (unsigned)hr);
         return 1;
@@ -111,7 +138,11 @@ int main(void)
     D3D11_VIEWPORT vp = { 0, 0, W, H, 0, 1 };
     const float clear[4] = { 0.1f, 0.2f, 0.3f, 1.0f };
     const UINT stride = 8, offset = 0;
-    for (int frame = 0; frame < 3; frame++) {
+    /* FRAMES=N in the environment: more presents after the check (to watch). */
+    int frames = getenv("FRAMES") ? atoi(getenv("FRAMES")) : 3;
+    if (frames < 3)
+        frames = 3;
+    for (int frame = 0; frame < frames; frame++) {
         D3D11_MAPPED_SUBRESOURCE m;
         hr = ID3D11DeviceContext_Map(ctx, (ID3D11Resource *)cb, 0, D3D11_MAP_WRITE_DISCARD, 0, &m);
         CHECK(SUCCEEDED(hr), "map the constant buffer 0x%08x", (unsigned)hr);
@@ -140,8 +171,8 @@ int main(void)
                 memcpy(&corner, px + 2 * m.RowPitch + 2 * 4, 4);
                 memcpy(&centre, px + (H / 2) * m.RowPitch + (W / 2) * 4, 4);
                 printf("dirk guest: corner %08x centre %08x\n", corner, centre);
-                CHECK(near(corner, 0xff4c3319u), "corner is %08x, not the clear colour", corner);
-                CHECK(near(centre, 0xff00ffffu), "centre is %08x, not the triangle", centre);
+                CHECK(close_to(corner, 0xff4c3319u), "corner is %08x, not the clear colour", corner);
+                CHECK(close_to(centre, 0xff00ffffu), "centre is %08x, not the triangle", centre);
                 ID3D11DeviceContext_Unmap(ctx, (ID3D11Resource *)staging, 0);
             }
         }

@@ -69,6 +69,39 @@ static void remove_proxy(struct dirk_proxy *p)
         *at = p->next;
 }
 
+/* The windows swap chains were made for. */
+#define WINDOWS_MAX 16
+static uint64_t windows[WINDOWS_MAX];
+static unsigned window_count;
+
+void dirk_window_seen(uint64_t window)
+{
+    unsigned i;
+    if (!window || !s.transport.window)
+        return;
+    lock();
+    for (i = 0; i < window_count && windows[i] != window; i++)
+        ;
+    if (i == window_count && window_count < WINDOWS_MAX)
+        windows[window_count++] = window;
+    unlock();
+    s.transport.window(s.transport.ctx, window);
+}
+
+void dirk_windows_check(void)
+{
+    uint64_t seen[WINDOWS_MAX];
+    unsigned i, n;
+    if (!s.transport.window)
+        return;
+    lock();
+    n = window_count;
+    memcpy(seen, windows, n * sizeof(*seen));
+    unlock();
+    for (i = 0; i < n; i++)
+        s.transport.window(s.transport.ctx, seen[i]);
+}
+
 void dirk_guest_init(const struct dirk_transport *transport)
 {
     s.transport = *transport;

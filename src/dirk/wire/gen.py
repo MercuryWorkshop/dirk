@@ -47,6 +47,15 @@ GUEST = {
 
 # Sends what the stream holds once the call is written: the frame's end, and
 # the calls that ask the GPU to start.
+# Methods naming a window: told to the transport first (dirk_window_seen).
+WINDOW = {
+    'IDXGIFactory.CreateSwapChain': 'desc ? (uint64_t)(uintptr_t)desc->OutputWindow : 0',
+    'IDXGIFactory2.CreateSwapChainForHwnd': '(uint64_t)(uintptr_t)hWnd',
+}
+# Methods after which a window may have changed size: each window seen is
+# looked at again first (dirk_windows_check).
+WINDOW_CHECK = {'IDXGISwapChain.Present', 'IDXGISwapChain1.Present1', 'IDXGISwapChain.ResizeBuffers',
+                'IDXGISwapChain3.ResizeBuffers1'}
 FLUSH = {'IDXGISwapChain.Present', 'IDXGISwapChain1.Present1', 'ID3D11DeviceContext.Flush'}
 
 # Returns E_NOTIMPL (or nothing) without asking the host.
@@ -481,6 +490,10 @@ class Writer:
             L.append('}')
             return L
         self.ops.append(m)
+        if key in WINDOW:
+            L.append(f'    dirk_window_seen({WINDOW[key]});')
+        if key in WINDOW_CHECK:
+            L.append('    dirk_windows_check();')
         L.append('    struct dirk_proxy *self = dirk_proxy_of(This);')
         size = ' + '.join(['DIRK_REC_HEADER'] + [put_size(k, info, p.name) for p, k, info in params])
         L.append(f'    size_t size = {size};')

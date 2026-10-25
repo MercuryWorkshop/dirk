@@ -698,6 +698,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIAdapter_CheckInterfaceSupport(IDXGI
 
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain_Present(IDXGISwapChain *This, UINT sync_interval, UINT flags)
 {
+    dirk_windows_check();
     struct dirk_proxy *self = dirk_proxy_of(This);
     size_t size = DIRK_REC_HEADER + 4 + 4;
     int wait = 0;
@@ -798,6 +799,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain_GetDesc(IDXGISwapChain *T
 
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain_ResizeBuffers(IDXGISwapChain *This, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT format, UINT flags)
 {
+    dirk_windows_check();
     struct dirk_proxy *self = dirk_proxy_of(This);
     size_t size = DIRK_REC_HEADER + 4 + 4 + 4 + 4 + 4;
     int wait = 0;
@@ -919,6 +921,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory_GetWindowAssociation(IDXGIF
 
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory_CreateSwapChain(IDXGIFactory *This, IUnknown * device, DXGI_SWAP_CHAIN_DESC * desc, IDXGISwapChain * * swapchain)
 {
+    dirk_window_seen(desc ? (uint64_t)(uintptr_t)desc->OutputWindow : 0);
     struct dirk_proxy *self = dirk_proxy_of(This);
     size_t size = DIRK_REC_HEADER + 4 + (4 + dirk_size_array_DXGI_SWAP_CHAIN_DESC(desc, 1)) + 4;
     int wait = swapchain == NULL;
@@ -1263,6 +1266,7 @@ static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain1_GetCoreWindow(IDXGISwapC
 
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGISwapChain1_Present1(IDXGISwapChain1 *This, UINT SyncInterval, UINT PresentFlags, const DXGI_PRESENT_PARAMETERS * pPresentParameters)
 {
+    dirk_windows_check();
     struct dirk_proxy *self = dirk_proxy_of(This);
     size_t size = DIRK_REC_HEADER + 4 + 4 + (4 + dirk_size_array_DXGI_PRESENT_PARAMETERS(pPresentParameters, 1));
     int wait = 0;
@@ -1393,6 +1397,7 @@ static BOOL STDMETHODCALLTYPE dirk_w_IDXGIFactory2_IsWindowedStereoEnabled(IDXGI
 
 static HRESULT STDMETHODCALLTYPE dirk_w_IDXGIFactory2_CreateSwapChainForHwnd(IDXGIFactory2 *This, IUnknown * pDevice, HWND hWnd, const DXGI_SWAP_CHAIN_DESC1 * pDesc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC * pFullscreenDesc, IDXGIOutput * pRestrictToOutput, IDXGISwapChain1 * * ppSwapChain)
 {
+    dirk_window_seen((uint64_t)(uintptr_t)hWnd);
     struct dirk_proxy *self = dirk_proxy_of(This);
     size_t size = DIRK_REC_HEADER + 4 + 8 + (4 + dirk_size_array_DXGI_SWAP_CHAIN_DESC1(pDesc, 1)) + (4 + dirk_size_array_DXGI_SWAP_CHAIN_FULLSCREEN_DESC(pFullscreenDesc, 1)) + 4 + 4;
     int wait = ppSwapChain == NULL;

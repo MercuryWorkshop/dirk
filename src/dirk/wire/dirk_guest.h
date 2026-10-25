@@ -37,6 +37,11 @@ struct dirk_transport {
      * the host is gone. */
     const uint8_t *(*send)(void *ctx, const uint8_t *records, size_t len, int wait);
     void *ctx;
+    /* Optional: a window the program makes a swap chain for, called again
+     * before each present and resize, outside the stream's lock. It names
+     * the window's surface and size (dirk_guest_window_surface) when they
+     * are new or changed. */
+    void (*window)(void *ctx, uint64_t window);
 };
 
 struct dirk_iface {
@@ -144,6 +149,12 @@ HRESULT WINAPI dirk_D3D11CreateDeviceAndSwapChain(IDXGIAdapter *adapter,
         const DXGI_SWAP_CHAIN_DESC *swapchain_desc, IDXGISwapChain **swapchain,
         ID3D11Device **device, D3D_FEATURE_LEVEL *feature_level, ID3D11DeviceContext **context);
 HRESULT WINAPI dirk_CreateDXGIFactory2(UINT flags, REFIID riid, void **factory);
+
+/* A window a call names (generated code, before the record): told to the
+ * transport. dirk_windows_check: each window seen, again (a present, a
+ * resize: the window may have changed size). */
+void dirk_window_seen(uint64_t window);
+void dirk_windows_check(void);
 
 /* Tells the host which surface shows a window, and its size. */
 void dirk_guest_window_surface(uint64_t window, uint32_t kind, uint32_t id,

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds dirk's guest test: tri, a static x86-64 Linux program whose D3D11
-# calls go through the wire to gex's /dev/gex-d3d.
+# calls go through the wire to gex's /dev/gex-d3d (and tri.exe, below).
 #
 #   [CC=x86_64-linux-musl-gcc] [VKD3D_COMPILER=vkd3d-compiler] build.sh <out-dir>
 #
@@ -27,3 +27,10 @@ fi
   "$HERE/tri.c" "$HERE/gex_transport.c" "$D/src/dirk/wire/dirk_guest.c" \
   "$D/src/dirk/wire/gen/dirk_wire_guest.c" -o "$out/tri"
 echo "$out/tri"
+# And tri.exe, the same test as a Windows x64 program (W64, the shim's
+# d3d11.dll), when MinGW is there.
+MINGW=${MINGW:-x86_64-w64-mingw32-gcc}
+if command -v "$MINGW" >/dev/null; then
+  "$MINGW" -std=gnu11 -O2 -I"$SHADERS" "$HERE/tri.c" -o "$out/tri.exe" -ld3d11 -ldxguid -luuid
+  echo "$out/tri.exe"
+fi
