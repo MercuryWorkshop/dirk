@@ -2,6 +2,10 @@
 // one wasm module, with no guest. It draws a textured cube for a few frames,
 // reads the back buffer back through a staging texture and checks it.
 //
+// Built with DIRK_WIRE_TEST, the cube's calls go through the wire instead:
+// the guest's proxies write records, which the host's decoder reads and
+// calls DXVK with, all in this module.
+//
 // Entered from the page through WebAssembly.promising (readbacks suspend).
 
 #include <windows.h>
@@ -25,6 +29,40 @@
 
 extern "C" void* wink_js_create_surface(const char* selector);
 extern "C" void dirk_test_publish(void);
+
+#ifdef DIRK_WIRE_TEST
+#include "../../src/dirk/wire/dirk_wire_host.h"
+extern "C" {
+  struct dirk_transport {
+    const uint8_t* (*send)(void* ctx, const uint8_t* records, size_t len, int wait);
+    void* ctx;
+  };
+  void dirk_guest_init(const dirk_transport* transport);
+  HRESULT dirk_D3D11CreateDeviceAndSwapChain(IDXGIAdapter*, D3D_DRIVER_TYPE, HMODULE, UINT,
+    const D3D_FEATURE_LEVEL*, UINT, UINT, const DXGI_SWAP_CHAIN_DESC*, IDXGISwapChain**,
+    ID3D11Device**, D3D_FEATURE_LEVEL*, ID3D11DeviceContext**);
+}
+
+namespace {
+  dirk_wire_client* g_client;
+  uint64_t g_sent_bytes, g_sends, g_waits;
+
+  const uint8_t* wireSend(void*, const uint8_t* records, size_t len, int wait) {
+    static const uint8_t none[4] = { };
+    const uint8_t* reply;
+    size_t reply_len;
+    g_sent_bytes += len;
+    g_sends++;
+    g_waits += wait != 0;
+    if (!dirk_wire_client_submit(g_client, records, len, &reply, &reply_len)) {
+      std::printf("FAIL the host refused the stream\n");
+      return nullptr;
+    }
+    return wait ? reply : none;
+  }
+}
+#define D3D11CreateDeviceAndSwapChain dirk_D3D11CreateDeviceAndSwapChain
+#endif
 
 namespace {
 
@@ -158,6 +196,12 @@ namespace {
     }
     g_canvas = static_cast<WGPUSurface>(wink_js_create_surface("#canvas"));
     dirk_init(screen, &g_host);
+#ifdef DIRK_WIRE_TEST
+    g_client = dirk_wire_client_create(nullptr);
+    const dirk_transport transport = { wireSend, nullptr };
+    dirk_guest_init(&transport);
+    std::printf("dirk: through the wire\n");
+#endif
 
     DXGI_SWAP_CHAIN_DESC sd = { };
     sd.BufferDesc.Width = W;
@@ -376,6 +420,11 @@ namespace {
     swapchain->Release();
     ctx->Release();
     std::printf("dirk: device refs left %lu\n", dev->Release());
+#ifdef DIRK_WIRE_TEST
+    std::printf("dirk wire: %llu bytes in %llu sends, %llu of them waiting\n",
+      (unsigned long long)g_sent_bytes, (unsigned long long)g_sends, (unsigned long long)g_waits);
+    dirk_wire_client_destroy(g_client);
+#endif
     return g_failures;
   }
 

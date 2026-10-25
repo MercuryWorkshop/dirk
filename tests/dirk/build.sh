@@ -2,8 +2,11 @@
 # Builds dirk's host cube: the dirk objects (DXVK's front end and the dirk
 # backend) and the test, linked with a packaged wink.
 #
-#   MESA=<wink Mesa tree> [VKD3D_COMPILER=vkd3d-compiler] [EMXX=em++] \
+#   MESA=<wink Mesa tree> [VKD3D_COMPILER=vkd3d-compiler] [EMXX=em++] [WIRE=1] \
 #     build.sh <wink-packaged-dir> <objects-dir> <out-dir>
+#
+# WIRE=1: the cube's calls go through the wire (objects built with
+# WINE_INCLUDE, whose generated guest side is in <objects-dir>/gen/wire).
 #
 # The objects are dirk's (objects.mk). cube.hlsl is compiled to DXBC with
 # vkd3d-compiler.
@@ -22,15 +25,26 @@ for s in vs ps; do
   (cd "$dxbc" && xxd -i -n cube_$s $s.dxbc > cube_$s.h)
 done
 
+wire=()
+if [ -n "${WIRE:-}" ]; then
+  EMCC=${EMCC:-${EMXX%++}cc}
+  for f in "$D/src/dirk/wire/dirk_guest.c" "$objs/gen/wire/dirk_wire_guest.c"; do
+    "$EMCC" -std=gnu11 -O2 -pthread -I"$D/include/native" -I"$D/include/native/windows" \
+      -I"$D/include/native/directx" -I"$D/src/dirk/wire" -I"$objs/gen/wire" \
+      -c "$f" -o "$out/$(basename "$f" .c).o"
+    wire+=("$out/$(basename "$f" .c).o")
+  done
+fi
+
 flags=()
 while IFS= read -r line; do flags+=("$line"); done < "$pkg/wink.rsp"
 
 "$EMXX" -std=c++17 -O2 -pthread -fwasm-exceptions -DNOMINMAX \
   -I"$D/include/native" -I"$D/include/native/windows" -I"$D/include/native/directx" \
   -I"$pkg/include" -I"$MESA/src/gallium/drivers/gex_wgpu" -I"$dxbc" \
-  -c "$HERE/d3d11cube.cpp" -o "$out/d3d11cube.o"
+  ${WIRE:+-DDIRK_WIRE_TEST} -c "$HERE/d3d11cube.cpp" -o "$out/d3d11cube.o"
 
-"$EMXX" -O2 "$out/d3d11cube.o" "$objs"/*.o \
+"$EMXX" -O2 "$out/d3d11cube.o" "$objs"/*.o ${wire[@]+"${wire[@]}"} \
   "$pkg/lib/libwink.a" "$pkg/lib/libwink_webgpu.a" "$pkg/lib/libwink_tint.a" \
   "${flags[@]}" \
   --js-library="$HERE/library_dirk_test.js" \

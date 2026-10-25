@@ -3,7 +3,10 @@
 #
 #   make -f tests/dirk/objects.mk O=<obj-dir> MESA=<wink Mesa tree> \
 #     MESA_BUILD=<its meson build dir> WEBGPU_INC=<emdawnwebgpu include dir> \
-#     [GLSLANG=glslangValidator] [EMSDK=~/emsdk] -j
+#     [GLSLANG=glslangValidator] [EMSDK=~/emsdk] [WINE_INCLUDE=<Wine's include dir>] -j
+#
+# With WINE_INCLUDE, the wire's host side too (src/dirk/wire), generated from
+# Wine's D3D11 and DXGI IDL.
 D       := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../src)
 EMSDK   ?= $(HOME)/emsdk
 EMCC    := $(EMSDK)/upstream/emscripten/emcc
@@ -41,6 +44,20 @@ name = $(O)/$(subst /,_,$(patsubst $(D)/%,%,$(1))).o
 GEN := $(G)/buildenv.h $(G)/version.h $(G)/d3d11_video_blit_frag.h $(G)/d3d11_video_blit_vert.h
 
 all: $(foreach f,$(FE) $(BK) $(CS) $(NIR),$(call name,$(f)))
+
+ifneq ($(WINE_INCLUDE),)
+W     := $(D)/dirk/wire
+WGEN  := $(G)/wire/dirk_wire_ops.h $(G)/wire/dirk_wire_host.cpp $(G)/wire/dirk_wire_guest.c
+WFLAGS := -I$(W) -I$(G)/wire
+all: $(O)/dirk_wire_host.o $(O)/dirk_host.o
+$(WGEN) &: $(W)/gen.py $(W)/idl.py
+	@mkdir -p $(G)/wire
+	python3 $(W)/gen.py $(WINE_INCLUDE) $(G)/wire
+$(O)/dirk_wire_host.o: $(WGEN) $(W)/dirk_host.h $(W)/dirk_wire.h
+	@cd $(D) && $(EMXX) $(DXVK_FLAGS) $(WFLAGS) -c $(G)/wire/dirk_wire_host.cpp -o $@
+$(O)/dirk_host.o: $(W)/dirk_host.cpp $(WGEN) $(W)/dirk_host.h $(W)/dirk_wire.h $(W)/dirk_format.h
+	@cd $(D) && $(EMXX) $(DXVK_FLAGS) $(WFLAGS) -c $(W)/dirk_host.cpp -o $@
+endif
 
 $(G)/buildenv.h:
 	@mkdir -p $(G)
