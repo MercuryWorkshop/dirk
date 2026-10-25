@@ -36,6 +36,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(d3d11);
 #define REPLY_CAPACITY (32u * 1024 * 1024)
 #define GEX_GL_SUBMIT 0xc0086701u
 #define GEX_GL_SUBMIT_ASYNC 0xc0086704u
+#define GEX_GL_SURFACE 0x40106703u
 
 struct header {
     uint32_t magic, capacity, tail, reply_capacity, reply_len, status, failed_at, protocol_version;
@@ -117,6 +118,39 @@ static NTSTATUS dirk_submit(void *args)
     return STATUS_SUCCESS;
 }
 
+/* Tell this process's compositor that the host draws a surface (the GL
+ * device's GEX_GL_SURFACE, which /dev/gex-d3d shares): without it the
+ * compositor goes on painting the window from the client's own buffers, and
+ * the frames presented to the surface are never shown. Once per surface and
+ * size, since each one republishes the scene. */
+static void tell_compositor(UINT32 id, UINT32 width, UINT32 height)
+{
+    static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    static struct { UINT32 id, width, height; } told[16];
+    static unsigned count;
+    UINT32 arg[4] = { 0, id, width, height };
+    unsigned i;
+    pthread_mutex_lock(&lock);
+    for (i = 0; i < count && told[i].id != id; i++)
+        ;
+    if (i < count && told[i].width == width && told[i].height == height) {
+        pthread_mutex_unlock(&lock);
+        return;
+    }
+    if (i == count) {
+        if (count == ARRAYSIZE(told))
+            i = count - 1;
+        else
+            count++;
+    }
+    told[i].id = id;
+    told[i].width = width;
+    told[i].height = height;
+    pthread_mutex_unlock(&lock);
+    if (ioctl(fd, GEX_GL_SURFACE, arg) < 0)
+        WARN("dirk: GEX_GL_SURFACE for surface %u: %s\n", id, strerror(errno));
+}
+
 static NTSTATUS dirk_surface(void *args)
 {
     struct dirk_unix_surface_params *params = args;
@@ -127,6 +161,8 @@ static NTSTATUS dirk_surface(void *args)
     params->width = rect.right - rect.left;
     params->height = rect.bottom - rect.top;
     params->id = wayland_gex_client_surface ? wayland_gex_client_surface(hwnd) : 0;
+    if (params->id && fd >= 0)
+        tell_compositor(params->id, params->width, params->height);
     return STATUS_SUCCESS;
 }
 

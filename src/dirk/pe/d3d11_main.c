@@ -52,8 +52,11 @@ static void window_changed(void *ctx, uint64_t hwnd)
     struct dirk_unix_surface_params p = { hwnd };
     unsigned i;
     (void)ctx;
-    if (WINE_UNIX_CALL(dirk_unix_surface, &p))
+    if (WINE_UNIX_CALL(dirk_unix_surface, &p)) {
+        if (dirk_trace_on)
+            dirk_trace("window %llx: no surface (the Unix side refused it)", (unsigned long long)hwnd);
         return;
+    }
     EnterCriticalSection(&window_lock);
     for (i = 0; i < window_count && windows[i].hwnd != hwnd; i++)
         ;
@@ -74,6 +77,8 @@ static void window_changed(void *ctx, uint64_t hwnd)
     windows[i].width = p.width;
     windows[i].height = p.height;
     LeaveCriticalSection(&window_lock);
+    if (dirk_trace_on)
+        dirk_trace("window %llx: surface %u, %ux%u", (unsigned long long)hwnd, p.id, p.width, p.height);
     dirk_guest_window_surface(hwnd, 0, p.id, p.width, p.height);
 }
 
