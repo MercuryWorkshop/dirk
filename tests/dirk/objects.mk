@@ -99,8 +99,20 @@ $(foreach f,$(CS),$(eval $(call cc,$(f))))
 $(foreach f,$(NIR),$(eval $(call nir,$(f))))
 
 ifneq ($(PKG),)
+# Mesa's VkFormat to pipe_format table (src/vulkan/util/vk_format.c), which
+# the backend names: a Mesa built without Vulkan has no vulkan_util, so the
+# table and its function are taken from that file as the pinned Mesa has them.
+VKF := $(O)/dirk_vk_format.o
+$(G)/dirk_vk_format.c: $(MESA)/src/vulkan/util/vk_format.c
+	@mkdir -p $(G)
+	{ printf '#include <vulkan/vulkan_core.h>\n#include "util/format/u_formats.h"\n#include "util/macros.h"\n'; \
+	  awk '/^const enum pipe_format vk_format_map\[\] = \{/ { on = 1; sub(/^const/, "static const") } \
+	       on { print } /^vk_format_to_pipe_format\(VkFormat/ { fn = 1 } fn && /^}/ { exit }' $<; } > $@
+	@grep -q 'return vk_format_map\[vkformat\]' $@ || { echo "$@: vk_format.c changed shape" >&2; rm -f $@; exit 1; }
+$(VKF): $(G)/dirk_vk_format.c
+	@cd $(D) && $(EMCC) -std=c11 $(MESA_FLAGS) -I$(D)/../include/vulkan/include -c $< -o $@
 EMAR := $(EMSDK)/upstream/emscripten/emar
-OBJS := $(foreach f,$(FE) $(BK) $(CS) $(NIR),$(call name,$(f))) $(WIRE_OBJS)
+OBJS := $(foreach f,$(FE) $(BK) $(CS) $(NIR),$(call name,$(f))) $(WIRE_OBJS) $(VKF)
 all: $(PKG)/lib/libdirk.a $(PKG)/include/dirk/dirk.h $(PKG)/include/dirk_wire_host.h
 $(PKG)/lib/libdirk.a: $(OBJS)
 	@mkdir -p $(dir $@)
