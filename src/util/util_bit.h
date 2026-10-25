@@ -8,6 +8,8 @@
   #endif
 #elif defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
   #define DXVK_ARCH_ARM64
+#elif defined(__wasm__)
+  #define DXVK_ARCH_WASM
 #else
 #error "Unknown CPU Architecture"
 #endif
@@ -184,6 +186,13 @@ namespace dxvk::bit {
     return r;
     #endif
   }
+
+#ifdef DXVK_ARCH_WASM
+  // size_t is unsigned long here, which is neither uint32_t nor uint64_t.
+  inline uint32_t tzcnt(unsigned long n) { return tzcnt(uint32_t(n)); }
+  inline uint32_t bsf(unsigned long n) { return bsf(uint32_t(n)); }
+  inline uint32_t lzcnt(unsigned long n) { return lzcnt(uint32_t(n)); }
+#endif
 
   inline uint32_t lzcnt(uint64_t n) {
     #if defined(_MSC_VER) && !defined(__clang__) && !defined(__LZCNT__) && defined(DXVK_ARCH_X86_64)
