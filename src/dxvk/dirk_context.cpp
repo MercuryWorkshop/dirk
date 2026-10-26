@@ -1060,14 +1060,9 @@ namespace dxvk {
   }
 
 
-  // The smallest and largest index a draw reads, from the host's copy of the
-  // index buffer when it has the bytes the draw will read (not a buffer the
-  // GPU wrote): the vertices a draw reads, which lets the driver tell a
-  // write to bytes no recorded draw reads from one it has to order after
-  // them. Big draws are left unbounded, where scanning would cost more than
-  // it could save.
-  // What the scans cost, for the driver's GEX_WGPU_TIMING report: every
-  // scan and index counted, one scan in 16 timed and scaled up.
+  // What the index-bounds scans cost, for the driver's GEX_WGPU_TIMING
+  // report: the draws asked about and the indices scanned are counted, and
+  // one scan in 16 is timed, less what a clock read costs, and scaled up.
   extern "C" {
     uint64_t dirk_index_bounds_calls, dirk_index_bounds_indices;
     int64_t dirk_index_bounds_ns;
@@ -1082,51 +1077,56 @@ namespace dxvk {
 #endif
   }
 
-  static bool dirkIndexBoundsScan(const DxvkBufferSlice& ib, uint32_t indexSize, uint32_t first,
-      uint32_t count, bool restart, uint32_t& lo, uint32_t& hi);
+  template<typename T>
+  static void dirkScanIndices(const T* v, uint32_t count, bool restart, uint32_t& min, uint32_t& max) {
+    const T cut = T(~T(0));
+    for (uint32_t i = 0; i < count; i++) {
+      if (restart && v[i] == cut)
+        continue;
+      min = std::min<uint32_t>(min, v[i]);
+      max = std::max<uint32_t>(max, v[i]);
+    }
+  }
 
+  // The smallest and largest index a draw reads, from the host's copy of the
+  // index buffer when it has the bytes the draw will read (not a buffer the
+  // GPU wrote): the vertices a draw reads, which lets the driver tell a
+  // write to bytes no recorded draw reads from one it has to order after
+  // them. Big draws are left unbounded, where scanning would cost more than
+  // it could save.
   static bool dirkIndexBounds(const DxvkBufferSlice& ib, uint32_t indexSize, uint32_t first,
       uint32_t count, bool restart, uint32_t& lo, uint32_t& hi) {
     static const bool timing = [] {
       const char* v = std::getenv("GEX_WGPU_TIMING");
       return v && *v && *v != '0';
     }();
-    const uint64_t call = dirk_index_bounds_calls++;
-    if (!timing || call % 16)
-      return dirkIndexBoundsScan(ib, indexSize, first, count, restart, lo, hi);
-    const double t0 = dirkNowNs();
-    const bool ok = dirkIndexBoundsScan(ib, indexSize, first, count, restart, lo, hi);
-    dirk_index_bounds_ns += int64_t((dirkNowNs() - t0) * 16);
-    return ok;
-  }
-
-  static bool dirkIndexBoundsScan(const DxvkBufferSlice& ib, uint32_t indexSize, uint32_t first,
-      uint32_t count, bool restart, uint32_t& lo, uint32_t& hi) {
+    ++dirk_index_bounds_calls;
     const auto& buffer = ib.buffer();
     if (!count || count > 65536 || !buffer->mapPtr(0) || buffer->isInUse(DxvkAccess::Write))
       return false;
     if ((uint64_t(first) + count) * indexSize > buffer->info().size)
       return false;
-    dirk_index_bounds_indices += count;
-    const uint8_t* at = static_cast<const uint8_t*>(buffer->mapPtr(0)) + uint64_t(first) * indexSize;
-    uint32_t min = ~0u, max = 0;
-    if (indexSize == 2) {
-      const uint16_t* v = reinterpret_cast<const uint16_t*>(at);
-      for (uint32_t i = 0; i < count; i++) {
-        if (restart && v[i] == 0xffffu)
-          continue;
-        min = std::min<uint32_t>(min, v[i]);
-        max = std::max<uint32_t>(max, v[i]);
-      }
-    } else {
-      const uint32_t* v = reinterpret_cast<const uint32_t*>(at);
-      for (uint32_t i = 0; i < count; i++) {
-        if (restart && v[i] == 0xffffffffu)
-          continue;
-        min = std::min(min, v[i]);
-        max = std::max(max, v[i]);
+    static uint64_t scans;
+    static double clockNs = -1;
+    const bool timed = timing && scans++ % 16 == 0;
+    if (timed && clockNs < 0) {
+      // The cheapest of a few back-to-back reads: what timing itself adds.
+      clockNs = 1e18;
+      for (int i = 0; i < 32; i++) {
+        const double a = dirkNowNs();
+        clockNs = std::min(clockNs, dirkNowNs() - a);
       }
     }
+    dirk_index_bounds_indices += count;
+    const double t0 = timed ? dirkNowNs() : 0;
+    const uint8_t* at = static_cast<const uint8_t*>(buffer->mapPtr(0)) + uint64_t(first) * indexSize;
+    uint32_t min = ~0u, max = 0;
+    if (indexSize == 2)
+      dirkScanIndices(reinterpret_cast<const uint16_t*>(at), count, restart, min, max);
+    else
+      dirkScanIndices(reinterpret_cast<const uint32_t*>(at), count, restart, min, max);
+    if (timed)
+      dirk_index_bounds_ns += int64_t(std::max(0.0, dirkNowNs() - t0 - clockNs) * 16);
     if (min > max)
       return false;
     lo = min;
