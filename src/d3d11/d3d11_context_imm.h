@@ -73,6 +73,20 @@ namespace dxvk {
     void STDMETHODCALLTYPE Unmap(
             ID3D11Resource*             pResource,
             UINT                        Subresource);
+
+    /**
+     * \brief Writes bytes into a CPU-writable buffer's current copy
+     *
+     * What a no-overwrite map, a copy and an unmap do, except that only the
+     * bytes written are taken as written, not the whole buffer: the wire's
+     * draw ranges are a few hundred bytes of buffers that are megabytes.
+     * \returns \c false for a buffer the host cannot map for writing.
+     */
+    bool WriteBufferRange(
+            D3D11Buffer*                pBuffer,
+            UINT64                      Offset,
+      const void*                       pData,
+            UINT64                      Length);
             
     void STDMETHODCALLTYPE SwapDeviceContextState(
             ID3DDeviceContextState*           pState,

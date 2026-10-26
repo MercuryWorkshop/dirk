@@ -5,6 +5,9 @@
 
 #include "dirk_host.h"
 
+extern "C" bool dirk_d3d11_write_buffer_range(ID3D11DeviceContext* context,
+  ID3D11Resource* resource, uint64_t offset, const void* data, uint64_t length);
+
 extern "C" {
 #include "dirk_format.h"
 }
@@ -519,6 +522,11 @@ namespace dirk {
           missing(rec);
           return true;
         }
+        // Only the range is uploaded: an unmap would take the whole buffer
+        // as written.
+        if (rec.op == DIRK_OP_WRITE_RANGE
+         && dirk_d3d11_write_buffer_range(self, res, offset, bytes, len))
+          return true;
         D3D11_MAPPED_SUBRESOURCE m = { };
         HRESULT hr = self->Map(res, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &m);
         if (FAILED(hr)) {

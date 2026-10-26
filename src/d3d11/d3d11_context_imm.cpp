@@ -342,6 +342,38 @@ namespace dxvk {
   }
 
 
+  bool D3D11ImmediateContext::WriteBufferRange(
+          D3D11Buffer*                pBuffer,
+          UINT64                      Offset,
+    const void*                       pData,
+          UINT64                      Length) {
+    D3D10DeviceLock lock = LockContext();
+
+    if (!(pBuffer->Desc()->CPUAccessFlags & D3D11_CPU_ACCESS_WRITE)
+     || pBuffer->GetMapMode() == D3D11_COMMON_BUFFER_MAP_MODE_NONE)
+      return false;
+
+    const UINT64 size = pBuffer->Desc()->ByteWidth;
+    if (Offset > size || Length > size - Offset)
+      return false;
+
+    // As a no-overwrite map: the current copy, no synchronization.
+    void* ptr = pBuffer->GetMapPtr();
+    if (!ptr)
+      return false;
+    std::memcpy(static_cast<uint8_t*>(ptr) + Offset, pData, Length);
+
+    EmitCs([
+      cBuffer = pBuffer->GetBuffer(),
+      cOffset = VkDeviceSize(Offset),
+      cLength = VkDeviceSize(Length)
+    ] (DxvkContext* ctx) {
+      ctx->markHostWritten(cBuffer, cOffset, cLength);
+    });
+    return true;
+  }
+
+
   HRESULT D3D11ImmediateContext::MapBuffer(
           D3D11Buffer*                pResource,
           D3D11_MAP                   MapType,
@@ -1237,4 +1269,23 @@ namespace dxvk {
       return GpuFlushType::ImplicitWeakHint;
   }
 
+}
+
+
+// The wire host's way to the above (it sees only the COM interfaces).
+extern "C" bool dirk_d3d11_write_buffer_range(
+        ID3D11DeviceContext*  pContext,
+        ID3D11Resource*       pResource,
+        uint64_t              Offset,
+  const void*                 pData,
+        uint64_t              Length) {
+  if (!pContext || !pResource
+   || pContext->GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
+    return false;
+  D3D11_RESOURCE_DIMENSION dim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
+  pResource->GetType(&dim);
+  if (dim != D3D11_RESOURCE_DIMENSION_BUFFER)
+    return false;
+  return static_cast<dxvk::D3D11ImmediateContext*>(pContext)->WriteBufferRange(
+    static_cast<dxvk::D3D11Buffer*>(pResource), Offset, pData, Length);
 }
