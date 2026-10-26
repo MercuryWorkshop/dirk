@@ -10,7 +10,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 out=${1:?usage: build.sh OUT [NAME...]}
 shift
 mkdir -p "$out"
-names=${*:-compute deferred discard formats map_read ring streamout triangle twodev}
+names=${*:-compute deferred discard formats map_read ring ringwrap streamout triangle twodev}
 for n in $names; do
   x86_64-w64-mingw32-g++ -std=c++17 -O1 -DNOMINMAX "$here/test_d3d11_$n.cpp" \
     -o "$out/d3d11-$n.exe" -ld3d11 -ldxgi -ld3dcompiler_47 -luuid -static

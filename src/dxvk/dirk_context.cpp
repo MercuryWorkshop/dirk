@@ -1055,6 +1055,46 @@ namespace dxvk {
   }
 
 
+  // The smallest and largest index a draw reads, from the host's copy of the
+  // index buffer when it has the bytes the draw will read (not a buffer the
+  // GPU wrote): the vertices a draw reads, which lets the driver tell a
+  // write to bytes no recorded draw reads from one it has to order after
+  // them. Big draws are left unbounded, where scanning would cost more than
+  // it could save.
+  static bool dirkIndexBounds(const DxvkBufferSlice& ib, uint32_t indexSize, uint32_t first,
+      uint32_t count, bool restart, uint32_t& lo, uint32_t& hi) {
+    const auto& buffer = ib.buffer();
+    if (!count || count > 65536 || !buffer->mapPtr(0) || buffer->isInUse(DxvkAccess::Write))
+      return false;
+    if ((uint64_t(first) + count) * indexSize > buffer->info().size)
+      return false;
+    const uint8_t* at = static_cast<const uint8_t*>(buffer->mapPtr(0)) + uint64_t(first) * indexSize;
+    uint32_t min = ~0u, max = 0;
+    if (indexSize == 2) {
+      const uint16_t* v = reinterpret_cast<const uint16_t*>(at);
+      for (uint32_t i = 0; i < count; i++) {
+        if (restart && v[i] == 0xffffu)
+          continue;
+        min = std::min<uint32_t>(min, v[i]);
+        max = std::max<uint32_t>(max, v[i]);
+      }
+    } else {
+      const uint32_t* v = reinterpret_cast<const uint32_t*>(at);
+      for (uint32_t i = 0; i < count; i++) {
+        if (restart && v[i] == 0xffffffffu)
+          continue;
+        min = std::min(min, v[i]);
+        max = std::max(max, v[i]);
+      }
+    }
+    if (min > max)
+      return false;
+    lo = min;
+    hi = max;
+    return true;
+  }
+
+
   void DxvkContext::drawIndexed(uint32_t count, const VkDrawIndexedIndirectCommand* draws) {
     if (!commitGraphicsState() || !m_indexBuffer.defined())
       return;
@@ -1077,6 +1117,8 @@ namespace dxvk {
       sc.start = base + draws[i].firstIndex;
       sc.count = draws[i].indexCount;
       sc.index_bias = draws[i].vertexOffset;
+      info.index_bounds_valid = dirkIndexBounds(m_indexBuffer, indexSize, sc.start, sc.count,
+        info.primitive_restart, info.min_index, info.max_index);
       cso_draw_vbo(m_cso, &info, 0, nullptr, &sc, 1);
     }
   }
