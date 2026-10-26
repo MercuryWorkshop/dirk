@@ -623,8 +623,10 @@ namespace dxvk {
       // 64-byte aligned, and a little over, so a vec4 load at the end of a
       // constant buffer never reads past the block.
       m_mapPtr = std::aligned_alloc(64, align(size + 16, 64));
+      // All of it: a whole upload sends the padding up to the GPU buffer's
+      // size too (DxvkBuffer::uploadHostWrites).
       if (m_mapPtr)
-        std::memset(m_mapPtr, 0, size);
+        std::memset(m_mapPtr, 0, align(size + 16, 64));
     }
   }
 
@@ -732,6 +734,12 @@ namespace dxvk {
       const VkDeviceSize aligned = (end + 3u) & ~VkDeviceSize(3u);
       if (widen && aligned <= m_info.size)
         end = aligned;
+      // All of the buffer: then all of the GPU buffer, whose size is rounded
+      // up past the host copy's, so the driver sees a write of the whole of
+      // it and can put it in a buffer of its own rather than stage it in
+      // the pending batch. The host copy has the room (allocateStorage).
+      if (begin == 0 && end >= m_info.size)
+        end = m_resource->width0;
       pipe->buffer_subdata(pipe, m_resource, PIPE_MAP_WRITE,
         unsigned(begin), unsigned(end - begin),
         reinterpret_cast<const char*>(m_mapPtr) + begin);
