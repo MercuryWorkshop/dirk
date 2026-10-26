@@ -1,6 +1,11 @@
 // dirk: DXVK's context commands on a gallium context.
 
+#include <chrono>
+#include <cstdlib>
 #include <cstring>
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
 
 #include "dxvk_device.h"
 
@@ -1061,13 +1066,48 @@ namespace dxvk {
   // write to bytes no recorded draw reads from one it has to order after
   // them. Big draws are left unbounded, where scanning would cost more than
   // it could save.
+  // What the scans cost, for the driver's GEX_WGPU_TIMING report: every
+  // scan and index counted, one scan in 16 timed and scaled up.
+  extern "C" {
+    uint64_t dirk_index_bounds_calls, dirk_index_bounds_indices;
+    int64_t dirk_index_bounds_ns;
+  }
+
+  static double dirkNowNs() {
+#ifdef __EMSCRIPTEN__
+    return emscripten_get_now() * 1e6;
+#else
+    return double(std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::steady_clock::now().time_since_epoch()).count());
+#endif
+  }
+
+  static bool dirkIndexBoundsScan(const DxvkBufferSlice& ib, uint32_t indexSize, uint32_t first,
+      uint32_t count, bool restart, uint32_t& lo, uint32_t& hi);
+
   static bool dirkIndexBounds(const DxvkBufferSlice& ib, uint32_t indexSize, uint32_t first,
+      uint32_t count, bool restart, uint32_t& lo, uint32_t& hi) {
+    static const bool timing = [] {
+      const char* v = std::getenv("GEX_WGPU_TIMING");
+      return v && *v && *v != '0';
+    }();
+    const uint64_t call = dirk_index_bounds_calls++;
+    if (!timing || call % 16)
+      return dirkIndexBoundsScan(ib, indexSize, first, count, restart, lo, hi);
+    const double t0 = dirkNowNs();
+    const bool ok = dirkIndexBoundsScan(ib, indexSize, first, count, restart, lo, hi);
+    dirk_index_bounds_ns += int64_t((dirkNowNs() - t0) * 16);
+    return ok;
+  }
+
+  static bool dirkIndexBoundsScan(const DxvkBufferSlice& ib, uint32_t indexSize, uint32_t first,
       uint32_t count, bool restart, uint32_t& lo, uint32_t& hi) {
     const auto& buffer = ib.buffer();
     if (!count || count > 65536 || !buffer->mapPtr(0) || buffer->isInUse(DxvkAccess::Write))
       return false;
     if ((uint64_t(first) + count) * indexSize > buffer->info().size)
       return false;
+    dirk_index_bounds_indices += count;
     const uint8_t* at = static_cast<const uint8_t*>(buffer->mapPtr(0)) + uint64_t(first) * indexSize;
     uint32_t min = ~0u, max = 0;
     if (indexSize == 2) {
