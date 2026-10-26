@@ -720,10 +720,21 @@ namespace dxvk {
 
   void DxvkBuffer::uploadHostWrites(pipe_context* pipe) {
     if (m_dirtyEnd > m_dirtyBegin && m_mapPtr) {
-      const VkDeviceSize end = std::min(m_dirtyEnd, m_info.size);
+      // Out to whole words, where the buffer has them: an unaligned upload
+      // cannot be recorded into the driver's batch, so it submits the draws
+      // before it, and a draw range (16-bit indices from an odd start, say)
+      // is often unaligned -- one submit per draw. The bytes around are the
+      // host copy's, which is what the GPU copy holds there already unless
+      // the GPU wrote the buffer since (then the range stays as it is).
+      const bool widen = !isInUse(DxvkAccess::Write);
+      VkDeviceSize begin = widen ? m_dirtyBegin & ~VkDeviceSize(3u) : m_dirtyBegin;
+      VkDeviceSize end = std::min(m_dirtyEnd, m_info.size);
+      const VkDeviceSize aligned = (end + 3u) & ~VkDeviceSize(3u);
+      if (widen && aligned <= m_info.size)
+        end = aligned;
       pipe->buffer_subdata(pipe, m_resource, PIPE_MAP_WRITE,
-        unsigned(m_dirtyBegin), unsigned(end - m_dirtyBegin),
-        reinterpret_cast<const char*>(m_mapPtr) + m_dirtyBegin);
+        unsigned(begin), unsigned(end - begin),
+        reinterpret_cast<const char*>(m_mapPtr) + begin);
     }
     clearWritten();
   }
