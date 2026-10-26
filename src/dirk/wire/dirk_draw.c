@@ -811,13 +811,16 @@ void dirk_h_ID3D11DeviceContext_ExecuteCommandList(ID3D11DeviceContext *This, ID
 
 void dirk_h_IDXGISwapChain_Present(IDXGISwapChain *This, UINT interval, UINT flags)
 {
-    (void)This; (void)interval; (void)flags;
-    stats_frame();
+    (void)This; (void)interval;
+    /* A test present shows nothing: not a frame. */
+    if (!(flags & DXGI_PRESENT_TEST))
+        stats_frame();
 }
 
 void dirk_h_IDXGISwapChain1_Present1(IDXGISwapChain1 *This, UINT interval, UINT flags,
         const DXGI_PRESENT_PARAMETERS *params)
 {
-    (void)This; (void)interval; (void)flags; (void)params;
-    stats_frame();
+    (void)This; (void)interval; (void)params;
+    if (!(flags & DXGI_PRESENT_TEST))
+        stats_frame();
 }
