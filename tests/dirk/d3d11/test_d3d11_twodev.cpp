@@ -1,7 +1,8 @@
 // Two devices drawing at once, each through buffers rewritten between its
-// draws: a constant buffer by UpdateSubresource and a dynamic vertex buffer
-// by discard maps, with the two devices' calls interleaved so both have
-// draws recorded and unsubmitted while the other writes. Each draws a 16x16
+// draws: a constant buffer whole by UpdateSubresource, and a default vertex
+// buffer in part (a box of one column's quad, so the rest is carried over),
+// with the two devices' calls interleaved so both have draws recorded and
+// unsubmitted while the other writes. Each draws a 16x16
 // target column by column, three times over (the last pass is the one that
 // shows), in colours of its own. Prints "twodev: pass", or a FAIL line with
 // the device and the first pixel that is wrong.
@@ -64,10 +65,8 @@ static const char *setup(Device &d, ID3DBlob *vsBlob, ID3DBlob *psBlob) {
   bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
   if (FAILED(d.dev->CreateBuffer(&bd, nullptr, &d.cb)))
     return "constant buffer";
-  bd.ByteWidth = 4 * 2 * sizeof(float);
-  bd.Usage = D3D11_USAGE_DYNAMIC;
+  bd.ByteWidth = 16 * 4 * 2 * sizeof(float);
   bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-  bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
   if (FAILED(d.dev->CreateBuffer(&bd, nullptr, &d.vb)))
     return "vertex buffer";
   D3D11_TEXTURE2D_DESC td = { };
@@ -111,12 +110,9 @@ static bool column(Device &d, uint32_t n, uint32_t p, uint32_t x) {
   ctx->UpdateSubresource(d.cb.ptr(), 0, nullptr, col, 0, 0);
   float x0 = x / 8.0f - 1.0f, x1 = (x + 1) / 8.0f - 1.0f;
   const float quad[8] = { x0, 1, x1, 1, x0, -1, x1, -1 };
-  D3D11_MAPPED_SUBRESOURCE m;
-  if (FAILED(ctx->Map(d.vb.ptr(), 0, D3D11_MAP_WRITE_DISCARD, 0, &m)))
-    return false;
-  std::memcpy(m.pData, quad, sizeof(quad));
-  ctx->Unmap(d.vb.ptr(), 0);
-  ctx->Draw(4, 0);
+  const D3D11_BOX box = { UINT(x * sizeof(quad)), 0, 0, UINT((x + 1) * sizeof(quad)), 1, 1 };
+  ctx->UpdateSubresource(d.vb.ptr(), 0, &box, quad, 0, 0);
+  ctx->Draw(4, 4 * x);
   return true;
 }
 
@@ -158,7 +154,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     for (uint32_t x = 0; x < 16; x++)
       for (uint32_t n = 0; n < 2; n++)
         if (!column(dev[n], n, p, x))
-          return fail("discard map");
+          return fail("draw");
   if (check(dev[0], 0) + check(dev[1], 1))
     return fail("pixels");
   std::cout << "twodev: pass" << std::endl;
