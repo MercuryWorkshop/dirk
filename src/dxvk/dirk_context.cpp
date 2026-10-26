@@ -1718,6 +1718,15 @@ namespace dxvk {
         u_box_2d(0, 0, extent.width, extent.height, &blit.src.box);
         blit.mask = PIPE_MASK_RGBA;
         blit.filter = PIPE_TEX_FILTER_NEAREST;
+        // The identity swizzle, set: the driver does a same-size blit that
+        // changes only the format as a pixel transfer through the CPU (a
+        // readback, a conversion and an upload, every frame), and one with
+        // a swizzle as a textured draw on the GPU.
+        blit.swizzle_enable = true;
+        blit.swizzle[0] = PIPE_SWIZZLE_X;
+        blit.swizzle[1] = PIPE_SWIZZLE_Y;
+        blit.swizzle[2] = PIPE_SWIZZLE_Z;
+        blit.swizzle[3] = PIPE_SWIZZLE_W;
         m_pipe->blit(m_pipe, &blit);
         out = entry.resource;
       }
