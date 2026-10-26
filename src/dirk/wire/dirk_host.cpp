@@ -135,7 +135,7 @@ namespace dirk {
         std::fprintf(stderr, "dirk: verify: %llu bytes at %llu differ from byte %llu (0x%02x, guest 0x%02x)\n",
                      (unsigned long long)len, (unsigned long long)offset, (unsigned long long)(offset + i), a[i], b[i]);
     }
-    if (m_verified % 4096 == 0)
+    if (m_verified % 4096 == 0 || m_verified == 16)
       std::fprintf(stderr, "dirk: verify: %llu ranges (%llu MiB), %llu differ\n", (unsigned long long)m_verified,
                    (unsigned long long)(m_verified_bytes >> 20), (unsigned long long)m_mismatched);
   }

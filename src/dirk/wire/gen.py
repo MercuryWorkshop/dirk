@@ -834,6 +834,19 @@ class Writer:
         L.append('    DIRK_OP_GENERATED_END')
         L.append('};')
         L.append('')
+        L.append('/* A generated op\'s method, for the stats (DIRK_WIRE_STATS). */')
+        L.append('static inline const char *dirk_op_name(unsigned op)')
+        L.append('{')
+        L.append('    switch (op) {')
+        seen = set()
+        for m in self.ops:
+            if self.op(m) not in seen:
+                seen.add(self.op(m))
+                L.append(f'    case {self.op(m)}: return "{m.iface}.{m.name}";')
+        L.append('    default: return 0;')
+        L.append('    }')
+        L.append('}')
+        L.append('')
         L.append('#endif')
         return '\n'.join(L) + '\n'
 

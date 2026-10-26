@@ -147,10 +147,21 @@ static int send_held(int wait, const uint8_t **reply)
     const uint8_t *r = NULL;
     if (s.gone)
         return 0;
-    if (s.len || wait)
-        r = s.transport.send(s.transport.ctx, s.buf, s.len, wait);
-    else
+    if (s.len || wait) {
+        if (dirk_stats_on()) {
+            uint16_t op = 0;
+            size_t len = s.len;
+            if (wait && s.rec)
+                memcpy(&op, s.rec + 4, 2);
+            double t0 = dirk_now_ms();
+            r = s.transport.send(s.transport.ctx, s.buf, s.len, wait);
+            dirk_stats_send(wait, op, len, dirk_now_ms() - t0);
+        } else {
+            r = s.transport.send(s.transport.ctx, s.buf, s.len, wait);
+        }
+    } else {
         r = s.buf;
+    }
     s.len = 0;
     if (!r) {
         s.gone = 1;

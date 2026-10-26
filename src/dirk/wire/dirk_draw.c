@@ -58,11 +58,90 @@ static struct {
     uint64_t frames, unmaps, lazy_unmaps, unmap_bytes, ranges, range_bytes, whole, whole_bytes;
 } st, st_was;
 
+double dirk_now_ms(void)
+{
+#ifdef _WIN32
+    static LARGE_INTEGER freq;
+    LARGE_INTEGER t;
+    if (!freq.QuadPart)
+        QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&t);
+    return (double)t.QuadPart * 1000.0 / (double)freq.QuadPart;
+#else
+    return 0;
+#endif
+}
+
+/* Sends, by whether they waited, and the waited ones by the op that did. */
+#define OPS 4096
+static struct {
+    uint64_t n[2], bytes;
+    double ms[2], max_ms[2];
+    uint32_t by_op[OPS];
+    double ms_op[OPS];
+} tx, tx_was;
+
+void dirk_stats_send(int wait, unsigned op, size_t len, double ms)
+{
+    wait = wait != 0;
+    tx.n[wait]++;
+    tx.ms[wait] += ms;
+    if (ms > tx.max_ms[wait])
+        tx.max_ms[wait] = ms;
+    tx.bytes += len;
+    if (wait) {
+        tx.by_op[op % OPS]++;
+        tx.ms_op[op % OPS] += ms;
+    }
+}
+
+static const char *op_name(unsigned op)
+{
+    static const char *const special[] = { "?", "Release", "QueryInterface", "Duplicate", "CreateDevice",
+        "CreateFactory", "CreateResource", "Map", "Unmap", "UpdateSubresource", "Surface", "WriteRange", "Verify" };
+    if (op < sizeof(special) / sizeof(*special))
+        return special[op];
+    const char *n = dirk_op_name(op);
+    return n ? n : "?";
+}
+
 static void stats_frame(void)
 {
     if (!stats || ++st.frames % 64)
         return;
     uint64_t n = st.frames - st_was.frames;
+    uint64_t sends[2] = { tx.n[0] - tx_was.n[0], tx.n[1] - tx_was.n[1] };
+    fprintf(stderr, "dirk: stats, frame %llu: per frame %.1f sends unwaited (%.3f ms each, max %.2f), "
+            "%.1f waited (%.3f ms each, max %.2f), %.1f KiB sent\n", (unsigned long long)st.frames,
+            (double)sends[0] / n, sends[0] ? (tx.ms[0] - tx_was.ms[0]) / sends[0] : 0, tx.max_ms[0],
+            (double)sends[1] / n, sends[1] ? (tx.ms[1] - tx_was.ms[1]) / sends[1] : 0, tx.max_ms[1],
+            (double)(tx.bytes - tx_was.bytes) / n / 1024);
+    /* The waited ones' ops, most first. */
+    for (int k = 0; k < 8; k++) {
+        unsigned best = 0;
+        uint32_t most = 0;
+        for (unsigned op = 0; op < OPS; op++) {
+            uint32_t c = tx.by_op[op] - tx_was.by_op[op];
+            if (c > most) {
+                most = c;
+                best = op;
+            }
+        }
+        if (!most)
+            break;
+        fprintf(stderr, "dirk: stats, waited for %s: %.2f per frame, %.3f ms each\n", op_name(best),
+                (double)most / n, (tx.ms_op[best] - tx_was.ms_op[best]) / most);
+        tx_was.by_op[best] = tx.by_op[best];
+        tx_was.ms_op[best] = tx.ms_op[best];
+    }
+    memcpy(tx_was.by_op, tx.by_op, sizeof(tx.by_op));
+    memcpy(tx_was.ms_op, tx.ms_op, sizeof(tx.ms_op));
+    tx_was.n[0] = tx.n[0];
+    tx_was.n[1] = tx.n[1];
+    tx_was.ms[0] = tx.ms[0];
+    tx_was.ms[1] = tx.ms[1];
+    tx_was.bytes = tx.bytes;
+    tx.max_ms[0] = tx.max_ms[1] = 0;
     fprintf(stderr, "dirk: stats, frame %llu: per frame %.1f Unmaps (%.1f sending nothing) sending %.1f KiB, "
             "%.1f draw ranges sending %.1f KiB, %.1f whole buffers sending %.1f KiB\n",
             (unsigned long long)st.frames, (double)(st.unmaps - st_was.unmaps) / n,
@@ -384,6 +463,12 @@ static void sync_range(void *ctx, struct dirk_proxy *buf, uint64_t lo, uint64_t 
     if (res->host_valid)
         differ(m->data, res->host, &a, &b);
     if (a < b) {
+        static int said;
+        if (dirk_trace_on && !said) {
+            said = 1;
+            dirk_trace("first draw range: %llu bytes at %llu of %llu", (unsigned long long)(b - a),
+                       (unsigned long long)a, (unsigned long long)size);
+        }
         put_range(ctx, DIRK_OP_WRITE_RANGE, buf, a, m->data + a, b - a);
         memcpy(res->host + a, m->data + a, b - a);
     }
@@ -444,6 +529,11 @@ int dirk_draw_unmap(void *ctx, struct dirk_proxy *buf, D3D11_MAP type)
     if (res->lazy) {
         res->gen++;
         if (lazy && type == D3D11_MAP_WRITE_NO_OVERWRITE && res->host_valid) {
+            static int said;
+            if (dirk_trace_on && !said) {
+                said = 1;
+                dirk_trace("first no-overwrite Unmap left for the draws");
+            }
             st.unmaps++;
             st.lazy_unmaps++;
             pending_add(buf);

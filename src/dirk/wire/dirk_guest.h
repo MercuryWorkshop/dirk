@@ -146,6 +146,9 @@ void dirk_unlock(void);
 
 /* dirk_draw.c: the bytes a draw reads that no-overwrite maps wrote. */
 int dirk_stats_on(void);
+double dirk_now_ms(void);
+/* One send of len bytes that took ms; a waited one's last record is op's. */
+void dirk_stats_send(int wait, unsigned op, size_t len, double ms);
 void dirk_draw_created(struct dirk_proxy *p, const D3D11_SUBRESOURCE_DATA *data);
 /* At an Unmap: nonzero when nothing is to be sent now. Else what is sent
  * is the mapping's whole size, counted. */
