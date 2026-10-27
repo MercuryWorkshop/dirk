@@ -4,7 +4,9 @@
 // of the target is one quad with its own colour, drawn from the ring slot its
 // vertices were written to; odd cells are indexed (base vertex at the slot),
 // and in the last two rows every fourth cell's vertices arrive by a GPU copy
-// from a second buffer instead. Flushes every 128 cells start fresh batches.
+// from a second buffer instead. Two cells in three are written wrong first
+// and right two cells before they are drawn, so the later write has to win.
+// Flushes every 128 cells start fresh batches.
 // Prints "ringwrap: pass", or a FAIL line with the first pixel that is wrong.
 #include <cstring>
 #include <vector>
@@ -157,7 +159,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ctx->IASetVertexBuffers(0, 1, vbs, strides, offsets);
   ctx->IASetIndexBuffer(ib.ptr(), DXGI_FORMAT_R16_UINT, 0);
 
-  auto put = [&](uint32_t cell) {
+  // Two cells in three are first written wrong (with the next cell's quad)
+  // LEAD cells ahead, and right two cells ahead: two writes of the same bytes
+  // with draws between that do not read them, so the later has to win.
+  auto twice = [](uint32_t cell) { return cell % 3 != 0 && !byCopy(cell); };
+  auto put = [&](uint32_t cell, bool wrong = false) {
     UINT at = RING_AT + slotOf(cell) * QUAD;
     if (byCopy(cell)) {
       D3D11_BOX box = { cell * QUAD, 0, 0, cell * QUAD + QUAD, 1, 1 };
@@ -165,18 +171,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       return;
     }
     Vertex v[4];
-    quad(cell, v);
+    quad(wrong ? (cell + 1) % CELLS : cell, v);
+    if (!wrong && cell % 3 == 2) {
+      // The right bytes in two halves, the second first.
+      D3D11_BOX first = { at, 0, 0, at + QUAD / 2, 1, 1 };
+      D3D11_BOX second = { at + QUAD / 2, 0, 0, at + QUAD, 1, 1 };
+      ctx->UpdateSubresource(vb.ptr(), 0, &second, &v[2], 0, 0);
+      ctx->UpdateSubresource(vb.ptr(), 0, &first, &v[0], 0, 0);
+      return;
+    }
     D3D11_BOX box = { at, 0, 0, at + QUAD, 1, 1 };
     ctx->UpdateSubresource(vb.ptr(), 0, &box, v, 0, 0);
   };
 
   for (uint32_t cell = 0; cell < LEAD; cell++)
-    put(cell);
+    put(cell, twice(cell) && cell >= 2);
   for (uint32_t cell = 0; cell < CELLS; cell++) {
     // Ahead of the draws; past the first wrap the slot is one a draw of this
     // batch may still read.
     if (cell + LEAD < CELLS)
-      put(cell + LEAD);
+      put(cell + LEAD, twice(cell + LEAD));
+    if (cell + 2 < CELLS && twice(cell + 2))
+      put(cell + 2);
     UINT first = (RING_AT + slotOf(cell) * QUAD) / sizeof(Vertex);
     if (cell & 1) {
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
