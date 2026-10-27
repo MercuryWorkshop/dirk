@@ -3,8 +3,8 @@
 # (the wire's guest side, src/dirk/pe and src/dirk/wire) and dxgi.dll (its
 # entry points forwarded to d3d11.dll), native wasm PE code, as relocatable
 # objects and export lists gex's tools/wine-wasm/stage-native64.sh links
-# into the native PE core (W64_EXTRA_DLLS=OUT). Their Unix side,
-# src/dirk/pe/unixlib.c, is linked with the loader (link-w64.sh).
+# into the native PE core (WINE64_EXTRA_DLLS=OUT). Their Unix side,
+# src/dirk/pe/unixlib.c, is linked with the loader (link-wine64.sh).
 #
 #   GEX_WASM64_SYSROOT=... build.sh OUT WINE_BUILD WINE_SRC GEX
 #
