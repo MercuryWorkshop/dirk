@@ -2,14 +2,14 @@
 # Builds dirk's Windows shim for W64 (gex's 64-bit native Wine): d3d11.dll
 # (the wire's guest side, src/dirk/pe and src/dirk/wire) and dxgi.dll (its
 # entry points forwarded to d3d11.dll), native wasm PE code, as relocatable
-# objects and export lists gex's tools/wine-wasm/stage-native64.sh links
+# objects and export lists gex's wine/stage-native.sh links
 # into the native PE core (WINE64_EXTRA_DLLS=OUT). Their Unix side,
-# src/dirk/pe/unixlib.c, is linked with the loader (link-wine64.sh).
+# src/dirk/pe/unixlib.c, is linked with the loader (wine/link-unix64.sh).
 #
 #   GEX_WASM64_SYSROOT=... build.sh OUT WINE_BUILD WINE_SRC GEX
 #
 # WINE_BUILD is a W64 wasm64 build tree (its winegcc, winebuild, import
-# libraries and generated headers), WINE_SRC its source, GEX gex's tree (wcc64).
+# libraries and generated headers), WINE_SRC its source, GEX gex's tree (wine/wcc64).
 set -euo pipefail
 [ $# -eq 4 ] || { sed -n 2,12p "$0" >&2; exit 2; }
 mkdir -p "$1"
@@ -17,7 +17,7 @@ out=$(cd "$1" && pwd) B=$(cd "$2" && pwd) W=$(cd "$3" && pwd) G=$(cd "$4" && pwd
 HERE=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 D=$(CDPATH='' cd -- "$HERE/../../../src/dirk" && pwd -P)
 : "${GEX_WASM64_SYSROOT:?set GEX_WASM64_SYSROOT}"
-WCC=$G/tools/wine-wasm/wcc64
+WCC=$G/wine/wcc64
 # A tree of the memory64 flavour (configured with wcc64 -mgex-memory64): the
 # shim is compiled for it too.
 grep -q '^CC *=.*-mgex-memory64' "$B/Makefile" && WCC="$WCC -mgex-memory64"
